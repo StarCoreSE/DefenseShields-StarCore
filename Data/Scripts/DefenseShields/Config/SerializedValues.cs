@@ -120,7 +120,7 @@
         [ProtoMember(24)] public bool ShowRedirect;
         [ProtoMember(25)] public int SinkHeatCount;
         [ProtoMember(26), DefaultValue(-1)] public float PowerWatts = 999f;
-        [ProtoMember(27), DefaultValue(true)] public bool AutoManage = true;
+        [ProtoMember(27), DefaultValue(false)] public bool AutoManage = false;
     }
 
     [ProtoContract]
