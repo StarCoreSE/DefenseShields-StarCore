@@ -225,9 +225,9 @@ namespace DefenseShields
 
             if (AutoManage != DsSet.Settings.AutoManage)
             {
-               // AutoManage = DsSet.Settings.AutoManage;
-               // if (_reModulationLoop == -1)
-               //     _reModulationLoop = 0;
+                AutoManage = DsSet.Settings.AutoManage;
+                if (_reModulationLoop == -1)
+                    _reModulationLoop = 0;
 
 
                 if (DsSet.Settings.SideShunting) {
