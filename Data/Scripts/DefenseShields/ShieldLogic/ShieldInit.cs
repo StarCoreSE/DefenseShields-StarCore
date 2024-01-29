@@ -595,6 +595,7 @@ namespace DefenseShields
                     if (power != null)
                     {
                         var maxPower = power.MaxOutput;
+<<<<<<< HEAD
                         if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
                         {
                             if (MyUtils.IsEqual(maxPower, 300f))
@@ -610,6 +611,23 @@ namespace DefenseShields
                         {
                             nerfScaler += (1 * value);
                         }
+=======
+                        //if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
+                        //{
+                        //    if (MyUtils.IsEqual(maxPower, 300f))
+                        //    {
+                        //        nerfScaler += (0.6f * value);
+                        //    }
+                        //    else
+                        //    {
+                        //        nerfScaler += (1.25f * value);
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    nerfScaler += (1 * value);
+                        //}
+>>>>>>> parent of 6b4e52c (Revert "remove powergen-specific buff/nerfs. make automodulate default off. make switching automodulate not nuke your shields")
 
                         nerfCount += value;
 
