@@ -10,7 +10,7 @@ namespace DefenseShields
 
     public class ApiServer
     {
-        private const long Channel = 3149625043;
+        private const long Channel = 1365616918;
 
         /// <summary>
         /// Is the API ready to be serve

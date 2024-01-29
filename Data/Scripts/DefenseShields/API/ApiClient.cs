@@ -62,7 +62,7 @@ namespace DefenseShields
 
         private Action<long> _addAtacker;
 
-        private const long Channel = 3149625043;
+        private const long Channel = 1365616918;
 
         public bool IsReady { get; private set; }
         public bool Compromised { get; private set; }
