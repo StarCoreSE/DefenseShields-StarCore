@@ -540,15 +540,15 @@ namespace DefenseShields
             internal Vector3I Position;
         }
 
-        private readonly Dictionary<MyStringHash, int> _nerfVanillaPower = new Dictionary<MyStringHash, int>(MyStringHash.Comparer)
-        {
-            {MyStringHash.GetOrCompute("LargeBlockSmallGenerator"), 15},
-            {MyStringHash.GetOrCompute("LargeBlockBatteryBlock"), 12},
-            {MyStringHash.GetOrCompute("LargeBlockLargeGenerator"), 300},
-            {MyStringHash.GetOrCompute("LargeBlockSmallGeneratorWarfare2"), 15},
-            {MyStringHash.GetOrCompute("LargeBlockBatteryBlockWarfare2"), 12},
-            {MyStringHash.GetOrCompute("LargeBlockLargeGeneratorWarfare2"), 300},
-        };
+       //private readonly Dictionary<MyStringHash, int> _nerfVanillaPower = new Dictionary<MyStringHash, int>(MyStringHash.Comparer)
+       //{
+       //    {MyStringHash.GetOrCompute("LargeBlockSmallGenerator"), 15},
+       //    {MyStringHash.GetOrCompute("LargeBlockBatteryBlock"), 12},
+       //    {MyStringHash.GetOrCompute("LargeBlockLargeGenerator"), 300},
+       //    {MyStringHash.GetOrCompute("LargeBlockSmallGeneratorWarfare2"), 15},
+       //    {MyStringHash.GetOrCompute("LargeBlockBatteryBlockWarfare2"), 12},
+       //    {MyStringHash.GetOrCompute("LargeBlockLargeGeneratorWarfare2"), 300},
+       //};
 
         private void ComputeCap()
         {
@@ -595,21 +595,21 @@ namespace DefenseShields
                     if (power != null)
                     {
                         var maxPower = power.MaxOutput;
-                        if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
-                        {
-                            if (MyUtils.IsEqual(maxPower, 300f))
-                            {
-                                nerfScaler += (0.6f * value);
-                            }
-                            else
-                            {
-                                nerfScaler += (1.25f * value);
-                            }
-                        }
-                        else
-                        {
-                            nerfScaler += (1 * value);
-                        }
+                        //if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
+                        //{
+                        //    if (MyUtils.IsEqual(maxPower, 300f))
+                        //    {
+                        //        nerfScaler += (0.6f * value);
+                        //    }
+                        //    else
+                        //    {
+                        //        nerfScaler += (1.25f * value);
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    nerfScaler += (1 * value);
+                        //}
 
                         nerfCount += value;
 
