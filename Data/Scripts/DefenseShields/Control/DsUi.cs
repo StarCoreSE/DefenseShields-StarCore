@@ -10,6 +10,7 @@ namespace DefenseShields
     using Sandbox.ModAPI;
     using VRage.ModAPI;
     using VRage.Utils;
+    using Sandbox.Game;
 
     internal static class DsUi
     {
@@ -629,6 +630,10 @@ namespace DefenseShields
                     comp.SettingsUpdated = true;
                     comp.SettingsChangeRequest = true;
                     comp.DsSet.Settings.SinkHeatCount++;
+                    //create a particle effect at the block entity
+                                                                                    
+                    MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", comp.MyGrid.Name);
+                    MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", comp.MyGrid.Name);
                 }
             }
         }
