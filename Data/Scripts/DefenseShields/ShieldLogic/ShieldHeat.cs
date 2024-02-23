@@ -5,6 +5,7 @@ using VRageMath;
 
 namespace DefenseShields
 {
+    using Sandbox.Game;
     using Support;
     using static VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GameDefinition;
 
@@ -46,6 +47,8 @@ namespace DefenseShields
             }
         }
 
+        private bool _heatSinkEffectTriggered = false;
+
         private void Heating()
         {
             if (ChargeMgr.AbsorbHeat > 0)
@@ -69,7 +72,7 @@ namespace DefenseShields
             var heatScale = (ShieldMode == ShieldType.Station || DsSet.Settings.FortifyShield) && DsState.State.Enhancer ? rawHeatScale * 2.75f : rawHeatScale;
             var thresholdAmount = heatScale * _heatScaleHp;
             var nextThreshold = hp * thresholdAmount * (_currentHeatStep + 1);
-            
+
             var scaledOverHeat = OverHeat / _heatScaleTime;
             var scaledHeatingSteps = HeatingStep / _heatScaleTime;
 
@@ -104,6 +107,18 @@ namespace DefenseShields
             {
                 StateChangeRequest = true;
             }
+
+            if (heatSinkActive && !_heatSinkEffectTriggered)
+            {
+                MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
+                MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);
+                _heatSinkEffectTriggered = true;
+            }
+            else if (!heatSinkActive)
+            {
+                _heatSinkEffectTriggered = false;
+            }
+
         }
 
         private void HeatTick()
