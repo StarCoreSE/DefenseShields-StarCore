@@ -5,6 +5,7 @@ using VRageMath;
 
 namespace DefenseShields
 {
+    using Sandbox.Game;
     using Support;
     using static VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GameDefinition;
 
@@ -46,6 +47,9 @@ namespace DefenseShields
             }
         }
 
+        private bool _heatSinkEffectTriggered = false;
+        private int _heatSinkEffectTimer = 0;
+
         private void Heating()
         {
             if (ChargeMgr.AbsorbHeat > 0)
@@ -53,7 +57,6 @@ namespace DefenseShields
 
             var oldMaxHpScaler = DsState.State.MaxHpReductionScaler;
             var heatSinkActive = DsSet.Settings.SinkHeatCount > HeatSinkCount;
-
 
             if ((heatSinkActive || _sinkCount != 0) && oldMaxHpScaler <= 0.95)
                 DecreaseHeatLevel();
@@ -69,7 +72,7 @@ namespace DefenseShields
             var heatScale = (ShieldMode == ShieldType.Station || DsSet.Settings.FortifyShield) && DsState.State.Enhancer ? rawHeatScale * 2.75f : rawHeatScale;
             var thresholdAmount = heatScale * _heatScaleHp;
             var nextThreshold = hp * thresholdAmount * (_currentHeatStep + 1);
-            
+
             var scaledOverHeat = OverHeat / _heatScaleTime;
             var scaledHeatingSteps = HeatingStep / _heatScaleTime;
 
@@ -103,6 +106,26 @@ namespace DefenseShields
             if (oldHeat != DsState.State.Heat || !MyUtils.IsEqual(oldMaxHpScaler, DsState.State.MaxHpReductionScaler))
             {
                 StateChangeRequest = true;
+            }
+
+            if (heatSinkActive)
+            {
+                if (!_heatSinkEffectTriggered || _heatSinkEffectTimer >= 60) // Check if it's not triggered or 1 second has passed
+                {
+                    MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
+                    MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);
+                    _heatSinkEffectTriggered = true;
+                    _heatSinkEffectTimer = 0; // Reset the timer
+                }
+                else
+                {
+                    _heatSinkEffectTimer++; // Increment the timer
+                }
+            }
+            else
+            {
+                _heatSinkEffectTriggered = false;
+                _heatSinkEffectTimer = 0; // Reset the timer
             }
         }
 
