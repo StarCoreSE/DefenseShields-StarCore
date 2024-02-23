@@ -48,6 +48,7 @@ namespace DefenseShields
         }
 
         private bool _heatSinkEffectTriggered = false;
+        private int _heatSinkEffectTimer = 0;
 
         private void Heating()
         {
@@ -56,7 +57,6 @@ namespace DefenseShields
 
             var oldMaxHpScaler = DsState.State.MaxHpReductionScaler;
             var heatSinkActive = DsSet.Settings.SinkHeatCount > HeatSinkCount;
-
 
             if ((heatSinkActive || _sinkCount != 0) && oldMaxHpScaler <= 0.95)
                 DecreaseHeatLevel();
@@ -108,17 +108,25 @@ namespace DefenseShields
                 StateChangeRequest = true;
             }
 
-            if (heatSinkActive && !_heatSinkEffectTriggered)
+            if (heatSinkActive)
             {
-                MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
-                MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);
-                _heatSinkEffectTriggered = true;
+                if (!_heatSinkEffectTriggered || _heatSinkEffectTimer >= 60) // Check if it's not triggered or 1 second has passed
+                {
+                    MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
+                    MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);
+                    _heatSinkEffectTriggered = true;
+                    _heatSinkEffectTimer = 0; // Reset the timer
+                }
+                else
+                {
+                    _heatSinkEffectTimer++; // Increment the timer
+                }
             }
-            else if (!heatSinkActive)
+            else
             {
                 _heatSinkEffectTriggered = false;
+                _heatSinkEffectTimer = 0; // Reset the timer
             }
-
         }
 
         private void HeatTick()
