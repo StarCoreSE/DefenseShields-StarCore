@@ -45,7 +45,7 @@ namespace DefenseShields
             new MyTerminalControlComboBoxItem() { Key = 3, Value = MyStringId.GetOrCompute("GigaWatt") },
             new MyTerminalControlComboBoxItem() { Key = 4, Value = MyStringId.GetOrCompute("TeraWatt") },
         };
-
+            
 
         internal static void CreateUi(IMyTerminalBlock shield)
         {
@@ -54,7 +54,7 @@ namespace DefenseShields
             Session.Instance.DepthSlider.Visible = ShowSizeSlider;
 
             Session.Instance.OffsetWidthSlider.Visible = ShowOffSetSlider;
-            Session.Instance.OffsetHeightSlider.Visible = ShowOffSetSlider;
+            Session.Instance.OffsetHeightSlider.Visible = ShowOffSetSlider; 
             Session.Instance.OffsetDepthSlider.Visible = ShowOffSetSlider;
 
             Session.Instance.Fit.Visible = ShowReSizeCheckBoxs;
@@ -631,23 +631,12 @@ namespace DefenseShields
                     comp.SettingsChangeRequest = true;
                     comp.DsSet.Settings.SinkHeatCount++;
                     //create a particle effect at the block entity
-
-                    if (MyAPIGateway.Multiplayer.IsServer)
-                    {
-                        MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", comp.MyGrid.Name);
-                        MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", comp.MyGrid.Name);
-                    }
-                    else
-                    {
-                        // If not running on the server, send a request to the server to run these actions
-                        // Implement the logic to send a message to the server to execute these actions
-                        // You may need to handle this based on the game's multiplayer API
-                        // Example: MyAPIGateway.Multiplayer.SendMessageToServer(...)
-                    }
+                                                                                    
+                    MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", comp.MyGrid.Name);
+                    MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", comp.MyGrid.Name);
                 }
             }
         }
-
 
         internal static void SetBackShield(IMyTerminalBlock block, bool redirect)
         {
@@ -668,8 +657,7 @@ namespace DefenseShields
 
         public static bool NewSideState(DefenseShields ds, Session.ShieldSides side, bool redirect, int currentState)
         {
-            if (Session.Instance.DedicatedServer || ds.DsSet.Settings.AutoManage)
-            {
+            if (Session.Instance.DedicatedServer || ds.DsSet.Settings.AutoManage) {
                 if (ds.DsSet.Settings.AutoManage && Session.Instance.Settings.ClientConfig.Notices)
                     Session.Instance.SendNotice("Cannot shunt when Shield is in Automatic Managemnet");
                 return false;
@@ -696,8 +684,7 @@ namespace DefenseShields
 
         public static void SetRedirect(DefenseShields ds, Session.ShieldSides side, int newValue)
         {
-            if (Session.Instance.Settings.ClientConfig.Notices)
-            {
+            if (Session.Instance.Settings.ClientConfig.Notices) {
 
                 var pendingChanges = ds.DsSet.Settings.ShieldRedirects != ds.ShieldRedirectState;
                 var enableText = SideEnabled(side, newValue) ? "Shunting" : "Normalizing";
