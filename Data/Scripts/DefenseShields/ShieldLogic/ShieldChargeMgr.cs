@@ -12,7 +12,7 @@ namespace DefenseShields
         internal class ShieldChargeMgr
         {
             internal const float ConvToWatts = 0.01f;
-            private const uint SideDownInterval = 1;
+            private const uint SideDownInterval = 900;
 
             internal readonly RunningAverageCalculator NormalAverage = new RunningAverageCalculator(1800);
 
