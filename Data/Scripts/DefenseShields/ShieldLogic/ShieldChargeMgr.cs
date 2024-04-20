@@ -212,7 +212,7 @@ namespace DefenseShields
 
                                     // Make the opposite side vulnerable to collapsing
                                     var oppositeSide = GetOppositeSide((Session.ShieldSides)i);
-                                    sides[(int)oppositeSide].Charge *= 0.5f;
+                                    sides[(int)oppositeSide].Charge *= 0.01f;
                                 }
                             }
                             if (side.Online)
@@ -255,13 +255,22 @@ namespace DefenseShields
             {
                 var sides = Controller.DsState.State.ShieldSides;
                 var stolenIntegrity = 0f;
-                var stealPercentage = 0.1f; // Steal 10% from each surrounding face
+                var totalSurroundingCharge = 0f;
 
                 foreach (var face in surroundingFaces)
                 {
                     var sideIndex = (int)face;
                     var side = sides[sideIndex];
-                    var stealAmount = side.Charge * stealPercentage;
+                    totalSurroundingCharge += side.Charge;
+                }
+
+                foreach (var face in surroundingFaces)
+                {
+                    var sideIndex = (int)face;
+                    var side = sides[sideIndex];
+                    var stealRatio = side.Charge / totalSurroundingCharge;
+                    var stealAmount = maxSideCharge * stealRatio;
+
                     if (side.Charge - stealAmount >= 0)
                     {
                         side.Charge -= stealAmount;
