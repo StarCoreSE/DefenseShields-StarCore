@@ -13,9 +13,10 @@ namespace DefenseShields
         {
             internal const float ConvToWatts = 0.01f;
             private const uint SideDownInterval = 900;
+            private const uint SideRegenInterval = 60;
+            private const float SideCollapseThreshold = 0.1f;
 
             internal readonly RunningAverageCalculator NormalAverage = new RunningAverageCalculator(1800);
-
             internal DefenseShields Controller;
             internal int SidesOnline;
             internal float Absorb;
@@ -45,20 +46,18 @@ namespace DefenseShields
                 Zero,
             }
 
-
             internal void DoDamage(float damage, float impactSize, bool energy, Vector3D position, bool hitWave, bool webDamage, float heatScaler = 1, bool setRender = true)
             {
                 Session.ShieldSides face;
                 GetFace(position, out face);
                 var sideInfo = Controller.DsState.State.ShieldSides[(int)face];
-
-                if (setRender && sideInfo.Online) {
+                if (setRender && sideInfo.Online)
+                {
                     HitWave = hitWave;
                     WorldImpactPosition = position;
                     ImpactSize = impactSize;
                     HitType = energy ? HitType.Energy : HitType.Kinetic;
                 }
-
                 WebDamage = webDamage;
                 Absorb += damage;
                 AbsorbHeat += (damage * heatScaler);
@@ -82,16 +81,14 @@ namespace DefenseShields
                     ModKineticDamage += damage;
                     RawKineticDamage += (damage * Controller.DsState.State.ModulateEnergy);
                 }
-
                 sideInfo.Absorb += damage;
             }
 
             internal void SetCharge(float amount, ChargeMode type)
             {
                 var state = Controller.DsState.State;
-                var relativeThreshold = 0.05f * Controller.ShieldChargeBase; // 5% threshold
+                var relativeThreshold = 0.05f * Controller.ShieldChargeBase;
                 var previousCharge = state.Charge;
-
                 if (type == ChargeMode.Overload)
                 {
                     state.Charge = -(Controller.ShieldMaxCharge * 2);
@@ -119,11 +116,9 @@ namespace DefenseShields
                 else
                 {
                     state.Charge -= amount;
-
                     if (!state.ReInforce)
                         ChargeSide(type);
                 }
-
                 if (Math.Abs(state.Charge - previousCharge) > relativeThreshold)
                     Controller.StateChangeRequest = true;
             }
@@ -133,8 +128,7 @@ namespace DefenseShields
                 var sides = Controller.DsState.State.ShieldSides;
                 var maxSides = sides.Length;
                 var maxSideCharge = Controller.ShieldChargeBase / maxSides;
-                var relativeThreshold = 0.05f * maxSideCharge; // 5% threshold
-
+                var relativeThreshold = 0.05f * maxSideCharge;
                 switch (type)
                 {
                     case ChargeMode.Set:
@@ -144,13 +138,11 @@ namespace DefenseShields
                         {
                             for (int i = 0; i < maxSides; i++)
                             {
-                                var sideId = (Session.ShieldSides) i;
-                                var side = sides[(int) sideId];
-
+                                var sideId = (Session.ShieldSides)i;
+                                var side = sides[(int)sideId];
                                 side.Charge = maxSideCharge;
                                 side.Online = true;
                             }
-
                             SidesOnline = 6;
                         }
                         break;
@@ -166,17 +158,13 @@ namespace DefenseShields
                         for (int i = 0; i < maxSides; i++)
                         {
                             var sideId = (Session.ShieldSides)i;
-                            var side = sides[(int) sideId];
-
+                            var side = sides[(int)sideId];
                             if (side.Online)
                                 ++SidesOnline;
-
                             if (maxSides != 6 && Controller.IsSideShunted(sideId))
                                 continue;
-
                             var chargePerSide = amount / activeSides;
                             var previousCharge = side.Charge;
-
                             if (side.Charge + chargePerSide > maxSideCharge)
                             {
                                 side.Charge = maxSideCharge;
@@ -185,48 +173,50 @@ namespace DefenseShields
                             {
                                 side.Charge += chargePerSide;
                             }
-
                             if (Session.Instance.IsServer && !side.Online && Session.Instance.Tick >= side.NextOnline)
                             {
                                 side.Online = true;
                                 Controller.StateChangeRequest = true;
                             }
-
-                            if (Math.Abs(side.Charge - previousCharge) > relativeThreshold )
+                            if (Math.Abs(side.Charge - previousCharge) > relativeThreshold)
                                 Controller.StateChangeRequest = true;
                         }
-
                         break;
                     case ChargeMode.Discharge:
-
                         SidesOnline = 0;
-
                         for (int i = 0; i < maxSides; i++)
                         {
                             var side = sides[i];
-
-
                             if (!side.Online)
                             {
                                 side.Absorb = 0;
                                 continue;
                             }
-
                             var previousCharge = side.Charge;
                             side.Charge -= (side.Absorb * ConvToWatts);
                             side.Absorb = 0;
-
                             if (Session.Instance.IsServer && side.Charge <= 0)
                             {
                                 side.Online = false;
                                 side.NextOnline = Session.Instance.Tick + SideDownInterval;
                                 side.Charge = 0;
                                 Controller.StateChangeRequest = true;
-                            }
 
+                                // Integrity stealing logic
+                                if (side.Charge < maxSideCharge * SideCollapseThreshold)
+                                {
+                                    var surroundingFaces = GetSurroundingFaces((Session.ShieldSides)i);
+                                    var stolenIntegrity = StealIntegrityFromSurroundingFaces(surroundingFaces, maxSideCharge);
+                                    side.Charge += stolenIntegrity;
+                                    side.NextOnline = Session.Instance.Tick + SideRegenInterval;
+
+                                    // Make the opposite side vulnerable to collapsing
+                                    var oppositeSide = GetOppositeSide((Session.ShieldSides)i);
+                                    sides[(int)oppositeSide].Charge *= 0.5f;
+                                }
+                            }
                             if (side.Online)
                                 ++SidesOnline;
-
                             if (Math.Abs(side.Charge - previousCharge) > relativeThreshold)
                                 Controller.StateChangeRequest = true;
                         }
@@ -237,6 +227,69 @@ namespace DefenseShields
                         break;
                     default:
                         break;
+                }
+            }
+
+            private Session.ShieldSides[] GetSurroundingFaces(Session.ShieldSides face)
+            {
+                switch (face)
+                {
+                    case Session.ShieldSides.Forward:
+                        return new[] { Session.ShieldSides.Up, Session.ShieldSides.Down, Session.ShieldSides.Left, Session.ShieldSides.Right };
+                    case Session.ShieldSides.Backward:
+                        return new[] { Session.ShieldSides.Up, Session.ShieldSides.Down, Session.ShieldSides.Left, Session.ShieldSides.Right };
+                    case Session.ShieldSides.Up:
+                        return new[] { Session.ShieldSides.Forward, Session.ShieldSides.Backward, Session.ShieldSides.Left, Session.ShieldSides.Right };
+                    case Session.ShieldSides.Down:
+                        return new[] { Session.ShieldSides.Forward, Session.ShieldSides.Backward, Session.ShieldSides.Left, Session.ShieldSides.Right };
+                    case Session.ShieldSides.Left:
+                        return new[] { Session.ShieldSides.Forward, Session.ShieldSides.Backward, Session.ShieldSides.Up, Session.ShieldSides.Down };
+                    case Session.ShieldSides.Right:
+                        return new[] { Session.ShieldSides.Forward, Session.ShieldSides.Backward, Session.ShieldSides.Up, Session.ShieldSides.Down };
+                    default:
+                        return new Session.ShieldSides[0];
+                }
+            }
+
+            private float StealIntegrityFromSurroundingFaces(Session.ShieldSides[] surroundingFaces, float maxSideCharge)
+            {
+                var sides = Controller.DsState.State.ShieldSides;
+                var stolenIntegrity = 0f;
+                var stealPercentage = 0.1f; // Steal 10% from each surrounding face
+
+                foreach (var face in surroundingFaces)
+                {
+                    var sideIndex = (int)face;
+                    var side = sides[sideIndex];
+                    var stealAmount = side.Charge * stealPercentage;
+                    if (side.Charge - stealAmount >= 0)
+                    {
+                        side.Charge -= stealAmount;
+                        stolenIntegrity += stealAmount;
+                    }
+                }
+
+                return stolenIntegrity;
+            }
+
+            private Session.ShieldSides GetOppositeSide(Session.ShieldSides face)
+            {
+                switch (face)
+                {
+                    case Session.ShieldSides.Forward:
+                        return Session.ShieldSides.Backward;
+                    case Session.ShieldSides.Backward:
+                        return Session.ShieldSides.Forward;
+                    case Session.ShieldSides.Up:
+                        return Session.ShieldSides.Down;
+                    case Session.ShieldSides.Down:
+                        return Session.ShieldSides.Up;
+                    case Session.ShieldSides.Left:
+                        return Session.ShieldSides.Right;
+                    case Session.ShieldSides.Right:
+                        return Session.ShieldSides.Left;
+                    default:
+                        return Session.ShieldSides.Forward;
                 }
             }
 
@@ -256,10 +309,9 @@ namespace DefenseShields
                 var sides = Controller.DsState.State.ShieldSides;
                 int totalSides = sides.Length;
                 var maxHealth = Controller.ShieldChargeBase / totalSides;
-                var side = sides[(int) shieldSide];
+                var side = sides[(int)shieldSide];
                 offline = !side.Online;
                 var currentHealth = (float)MathHelperD.Clamp(side.Charge, 0, maxHealth);
-
                 var ratioToFull = currentHealth / maxHealth;
                 return ratioToFull;
             }
@@ -289,7 +341,6 @@ namespace DefenseShields
                             faceDirection = -Controller.DetectMatrixOutside.Up;
                             break;
                     }
-
                     var faceCenter = Controller.WorldEllipsoidCenter + faceDirection;
                     var facePlane = new PlaneD(faceCenter, Vector3D.Normalize(faceDirection));
                     var distanceToFace = Math.Abs(facePlane.DistanceToPoint(pos));
@@ -317,15 +368,12 @@ namespace DefenseShields
             internal void Clear()
             {
                 ClearDamageTypeInfo();
-
-                
                 var sides = Controller.DsState.State.ShieldSides;
                 var maxSides = sides.Length;
                 for (int i = 0; i < maxSides; i++)
                 {
                     var sideId = (Session.ShieldSides)i;
                     var side = sides[(int)sideId];
-
                     if (Session.Instance.IsServer)
                     {
                         side.Online = false;
@@ -338,6 +386,7 @@ namespace DefenseShields
                 Controller.StateChangeRequest = true;
             }
         }
+
 
     }
 }
