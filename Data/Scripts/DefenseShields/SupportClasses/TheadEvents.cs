@@ -81,13 +81,13 @@ namespace DefenseShields.Support
             if (Session.Instance.MpActive)
             {
                 Shield.AddShieldHit(Entity.EntityId, 1, Session.Instance.MPKinetic, null, false, Entity.PositionComp.WorldVolume.Center);
-                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive,  Shield.MyCube.EntityId);
+                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive,  Shield.MyCube.EntityId, null);
             }
             else
             {
                 Shield.ChargeMgr.WorldImpactPosition = Entity.PositionComp.WorldVolume.Center;
                 Shield.ChargeMgr.ImpactSize = 10;
-                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive, Shield.MyCube.EntityId);
+                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive, Shield.MyCube.EntityId, null);
             }
             Shield.ChargeMgr.DoDamage(1, 1, false, Vector3D.Zero, false, true, 1, false);
             Session.Instance.FloaterPool.Return(this);
