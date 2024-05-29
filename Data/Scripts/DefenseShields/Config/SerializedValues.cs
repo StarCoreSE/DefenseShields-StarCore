@@ -29,6 +29,10 @@
         [ProtoMember(19), DefaultValue(-1)] public float PowerScaler = -1f;
         [ProtoMember(20), DefaultValue(-1)] public float SizeScaler = -1f;
         [ProtoMember(21), DefaultValue(-1)] public float MwPerCell = -1f;
+        [ProtoMember(22), DefaultValue(-1)] public float MaxHP = -1f;
+        [ProtoMember(23), DefaultValue(-1)] public float MinHP = -1f;
+        [ProtoMember(24), DefaultValue(-1)] public float MaxRecharge = -1f;
+        [ProtoMember(25), DefaultValue(-1)] public float MinRecharge = -1f;
     }
 
     [ProtoContract]

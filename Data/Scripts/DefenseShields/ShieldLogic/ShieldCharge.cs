@@ -5,6 +5,7 @@ using Sandbox.Game.Entities;
 using VRage;
 using VRage.Collections;
 using VRage.Utils;
+using Sandbox.ModAPI;
 
 namespace DefenseShields
 {
@@ -66,8 +67,11 @@ namespace DefenseShields
             var hpsEfficiency = Session.Enforced.HpsEfficiency;
             var baseScaler = Session.Enforced.BaseScaler;
             var maintenanceCost = Session.Enforced.MaintenanceCost;
+            var minHP = Session.Enforced.MinHP;
+            var maxHP = Session.Enforced.MaxHP;
+
             var fortify = DsSet.Settings.FortifyShield && DsState.State.Enhancer;
-            var shieldTypeRatio = _shieldTypeRatio / 100f;
+            var shieldTypeRatio = _shieldTypeRatio / 100f; // gridsize/station scaler
             var shieldMaintainPercent = maintenanceCost / 100;
             var modeEfficiency = DsSet.Settings.AutoManage ? 0.75f : 1f;
             _shieldCapped = DsState.State.CapModifier < 1;
@@ -83,16 +87,19 @@ namespace DefenseShields
             else
                 hpsEfficiency *= modeEfficiency;
 
-            var bufferMaxScaler = ((baseScaler * shieldTypeRatio) / _sizeScaler) * (2 - nerfScaler);
+            var bufferMaxScaler = (baseScaler / _sizeScaler) * (2 - nerfScaler);
 
-            var maxHp = ShieldMaxPower * bufferMaxScaler;
-            var reducedMaxHp = maxHp - (maxHp * DsState.State.MaxHpReductionScaler);
-            ShieldMaxHp = reducedMaxHp;
+            var grossHP = ShieldMaxPower * bufferMaxScaler;
+            grossHP = MathHelper.Clamp(grossHP, minHP, maxHP);
+            var reducedHP = grossHP * (1f - DsState.State.MaxHpReductionScaler);
+            ShieldMaxHp = reducedHP * shieldTypeRatio;
+
             var bonus = 0f;
-
-            if (DsState.State.CapModifier < 1) {
+            if (DsState.State.CapModifier < 1)
+            {
                 var diff = 1 - DsState.State.CapModifier;
-                if (ShieldMode == ShieldType.Station) {
+                if (ShieldMode == ShieldType.Station)
+                {
                     bonus = 1 - (diff / 2) / 2;
                 }
                 else if (fortify)
@@ -109,7 +116,7 @@ namespace DefenseShields
 
             _shieldMaintaintPower = ShieldMaxPower * maxHpScaler * shieldMaintainPercent;
 
-            ShieldChargeBase = maxHp * maxHpScaler;
+            ShieldChargeBase = grossHP * maxHpScaler;
             ShieldMaxCharge = ShieldMaxHp * maxHpScaler;
             var powerForShield = PowerNeeded(hpsEfficiency);
 
@@ -181,10 +188,14 @@ namespace DefenseShields
 
         private float PowerNeeded(float hpsEfficiency)
         {
+            var minRecharge = Session.Enforced.MinRecharge;
+            var maxRecharge = Session.Enforced.MaxRecharge;
+
             var cleanPower = ShieldAvailablePower + ShieldCurrentPower;
             _otherPower = ShieldMaxPower - cleanPower;
             var powerForShield = (cleanPower * 0.9f) - _shieldMaintaintPower;
             var rawMaxChargeRate = powerForShield > 0 ? powerForShield : 0f;
+            rawMaxChargeRate = MathHelper.Clamp(rawMaxChargeRate, minRecharge, maxRecharge);
             ShieldMaxChargeRate = rawMaxChargeRate;
             ShieldPeakRate = (ShieldMaxChargeRate * hpsEfficiency);
 

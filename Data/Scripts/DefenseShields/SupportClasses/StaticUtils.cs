@@ -32,7 +32,7 @@ namespace DefenseShields.Support
             const int DisableEntityBarrier = 0;
             const int Debug = 1;
             const int SuperWeapons = 1;
-            const int Version = 91;
+            const int Version = 92;
             const float BlockScaler = 1f;
             const float PowerScaler = 1f;
             const float SizeScaler = 7.5f;
@@ -42,6 +42,10 @@ namespace DefenseShields.Support
             const int DisableBlockDamage = 0;
             const int DisableLineOfSight = 1;
             const int OverloadTime = 2700;
+            const float MaxHP = float.MaxValue;
+            const float MinHP = 0f;
+            const float MaxRecharge = float.MaxValue;
+            const float MinRecharge = 0f;
 
             var dsCfgExists = MyAPIGateway.Utilities.FileExistsInGlobalStorage("DefenseShields.cfg");
             if (dsCfgExists)
@@ -49,12 +53,14 @@ namespace DefenseShields.Support
                 var unPackCfg = MyAPIGateway.Utilities.ReadFileInGlobalStorage("DefenseShields.cfg");
                 var unPackedData = MyAPIGateway.Utilities.SerializeFromXML<DefenseShieldsEnforcement>(unPackCfg.ReadToEnd());
 
-                var invalidValue = unPackedData.HpsEfficiency <= 0 || unPackedData.BaseScaler < 1 || unPackedData.MaintenanceCost <= 0;
+                var invalidValue = unPackedData.HpsEfficiency <= 0 || unPackedData.BaseScaler < 1 || unPackedData.MaintenanceCost <= 0 || unPackedData.MaxHP < 1 || unPackedData.MaxRecharge < 1;
                 if (invalidValue)
                 {
                     if (unPackedData.HpsEfficiency <= 0) unPackedData.HpsEfficiency = HpsEfficiency;
                     if (unPackedData.BaseScaler < 1) unPackedData.BaseScaler = BaseScaler;
                     if (unPackedData.MaintenanceCost <= 0) unPackedData.MaintenanceCost = MaintenanceCost;
+                    if (unPackedData.MaxHP < 1) unPackedData.MaxHP = MaxHP;
+                    if (unPackedData.MaxRecharge < 1) unPackedData.MaxRecharge = MaxRecharge;
                 }
                 if (unPackedData.Version == Version && !invalidValue) return;
 
@@ -81,6 +87,19 @@ namespace DefenseShields.Support
                 Session.Enforced.DisableBlockDamage = !unPackedData.DisableBlockDamage.Equals(-1) ? unPackedData.DisableBlockDamage : DisableBlockDamage;
                 Session.Enforced.DisableLineOfSight = !unPackedData.DisableLineOfSight.Equals(-1) ? unPackedData.DisableLineOfSight : DisableLineOfSight;
                 Session.Enforced.OverloadTime = !unPackedData.OverloadTime.Equals(-1) ? unPackedData.OverloadTime : OverloadTime;
+
+                Session.Enforced.MaxHP = !unPackedData.MaxHP.Equals(-1) ? unPackedData.MaxHP : MaxHP;
+                Session.Enforced.MinHP = !unPackedData.MinHP.Equals(-1) ? unPackedData.MinHP : MinHP;
+                Session.Enforced.MaxRecharge = !unPackedData.MaxRecharge.Equals(-1) ? unPackedData.MaxRecharge : MaxRecharge;
+                Session.Enforced.MinRecharge = !unPackedData.MinRecharge.Equals(-1) ? unPackedData.MinRecharge : MinRecharge;
+
+                if (unPackedData.Version < 92)
+                {
+                    Session.Enforced.MaxHP = MaxHP;
+                    Session.Enforced.MinHP = MinHP;
+                    Session.Enforced.MaxRecharge = MaxRecharge;
+                    Session.Enforced.MinRecharge = MinRecharge;
+                }
 
                 if (unPackedData.Version <= 90)
                 {
@@ -131,6 +150,11 @@ namespace DefenseShields.Support
                 Session.Enforced.PowerScaler = PowerScaler;
                 Session.Enforced.MwPerCell = PowerCellMw;
 
+                Session.Enforced.MaxHP = MaxHP;
+                Session.Enforced.MinHP = MinHP;
+                Session.Enforced.MaxRecharge = MaxRecharge;
+                Session.Enforced.MinRecharge = MinRecharge;
+
                 WriteNewConfigFile();
 
                 Log.Line($"wrote new config file - file exists: {MyAPIGateway.Utilities.FileExistsInGlobalStorage("DefenseShields.cfg")}");
@@ -148,6 +172,9 @@ namespace DefenseShields.Support
             var cfg = MyAPIGateway.Utilities.ReadFileInGlobalStorage("DefenseShields.cfg");
             var data = MyAPIGateway.Utilities.SerializeFromXML<DefenseShieldsEnforcement>(cfg.ReadToEnd());
             Session.Enforced = data;
+
+            Session.Enforced.MaxHP *= 0.01f;
+            Session.Enforced.MinHP *= 0.01f;
 
             if (Session.Enforced.Debug == 3) Log.Line($"Writing settings to mod:\n{data}");
         }
