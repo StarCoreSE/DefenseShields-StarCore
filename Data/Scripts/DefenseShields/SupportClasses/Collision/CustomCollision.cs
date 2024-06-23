@@ -15,72 +15,6 @@ namespace DefenseShields.Support
 
     internal class CustomCollision
     {
-        public static bool SpheresIntersect(BoundingSphereD boxSphere, Triangle3d triangle)
-        {
-            Vector3D boxCenter = boxSphere.Center; // The center of the bounding sphere of the box
-            double boxRadius = boxSphere.Radius; // The radius of the bounding sphere of the box
-
-            Vector3D triangleCenter = (triangle.V0 + triangle.V1 + triangle.V2) / 3; // The center of the bounding sphere of the triangle
-            double triangleRadius = Math.Max(Math.Max((triangle.V0 - triangleCenter).Length(), (triangle.V1 - triangleCenter).Length()), (triangle.V2 - triangleCenter).Length()); // The radius of the bounding sphere of the triangle
-
-            double distanceBetweenCenters = (boxCenter - triangleCenter).Length();
-
-            return distanceBetweenCenters <= (boxRadius + triangleRadius);
-        }
-
-        public static bool CheckObbTriIntersection(MyOrientedBoundingBoxD box, Triangle3d triangle, Vector3D[] boxEdges, Vector3D[] triangleEdges)
-        {
-            for (int i = 0; i < 3; ++i)
-            {
-                if (SeparatedOnAxis(box, triangle, boxEdges[i]))
-                    return false;
-            }
-
-            if (SeparatedOnAxis(box, triangle, Vector3D.Cross(triangleEdges[0], triangleEdges[1])))
-                return false;
-
-            for (int i = 0; i < 3; ++i)
-            {
-                for (int j = 0; j < 3; ++j)
-                {
-                    Vector3D axis = Vector3D.Cross(boxEdges[i], triangleEdges[j]);
-                    if (axis.LengthSquared() > 1e-6)
-                    {
-                        if (SeparatedOnAxis(box, triangle, axis))
-                            return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        private static bool SeparatedOnAxis(MyOrientedBoundingBoxD box, Triangle3d triangle, Vector3D axis)
-        {
-            double boxMin = double.MaxValue;
-            double boxMax = double.MinValue;
-            double triangleMin = double.MaxValue;
-            double triangleMax = double.MinValue;
-
-            for (int i = 0; i < 8; i++)
-            {
-                var point = box.GetCorner(i);
-                double val = point.Dot(axis);
-                boxMin = Math.Min(boxMin, val);
-                boxMax = Math.Max(boxMax, val);
-            }
-
-            for (int i = 0; i < 3; i++)
-            {
-                var point = i == 0 ? triangle.V0 : i == 1 ? triangle.V1 : triangle.V2;
-                double val = point.Dot(axis);
-                triangleMin = Math.Min(triangleMin, val);
-                triangleMax = Math.Max(triangleMax, val);
-            }
-
-            return boxMax < triangleMin || triangleMax < boxMin;
-        }
-
         public static bool FutureIntersect(DefenseShields ds, MyEntity ent, MatrixD detectMatrix, MatrixD detectMatrixInv)
         {
             var entVel = ent.Physics.LinearVelocity;
@@ -101,6 +35,43 @@ namespace DefenseShields.Support
             var velStepSize = entVel * MyEngineConstants.PHYSICS_STEP_SIZE_IN_SECONDS * steps;
             var pastCenter = entCenter + velStepSize;
             return pastCenter;
+        }
+
+        /*
+        public static Vector3D? MissileIntersect(DefenseShields ds, MyEntity missile, MatrixD detectMatrix, MatrixD detectMatrixInv)
+        {
+            var missileVel = missile.Physics.LinearVelocity;
+            var velStepSize = missileVel * (MyEngineConstants.PHYSICS_STEP_SIZE_IN_SECONDS * 2);
+            var missileCenter = missile.PositionComp.WorldVolume.Center;
+            var inflatedSphere = new BoundingSphereD(missileCenter, velStepSize.Length());
+            var wDir = detectMatrix.Translation - inflatedSphere.Center;
+            var wLen = wDir.Length();
+            var wTest = inflatedSphere.Center + wDir / wLen * Math.Min(wLen, inflatedSphere.Radius);
+            var intersect = Vector3D.Transform(wTest, detectMatrixInv).LengthSquared() <= 1;
+            Vector3D? hitPos = null;
+
+            if (intersect)
+            {
+                const float gameSecond = MyEngineConstants.PHYSICS_STEP_SIZE_IN_SECONDS * 60;
+                var line = new LineD(missileCenter + -missileVel * gameSecond, missileCenter + missileVel * gameSecond);
+                var obbIntersect = ds.SOriBBoxD.Intersects(ref line);
+                if (obbIntersect.HasValue)
+                {
+                    var testDir = line.From - line.To;
+                    testDir.Normalize();
+                    hitPos = line.From + testDir * -obbIntersect.Value;
+                }
+            }
+            return hitPos;
+        }
+        */
+
+        public static bool MissileNoIntersect(MyEntity missile, MatrixD detectMatrix, MatrixD detectMatrixInv, IMySlimBlock block)
+        {
+            var missileVel = missile.Physics.LinearVelocity;
+            var missileCenter = missile.PositionComp.WorldVolume.Center;
+            var leaving = Vector3D.Transform(missileCenter + (-missileVel * MyEngineConstants.PHYSICS_STEP_SIZE_IN_SECONDS * 2), detectMatrixInv).LengthSquared() <= 1;
+            return leaving;
         }
 
         public static float? IntersectEllipsoid(ref MatrixD ellipsoidMatrixInv, MatrixD ellipsoidMatrix, ref RayD ray)
@@ -134,6 +105,123 @@ namespace DefenseShields.Support
 
             return (float?)(isNaN ? (double?)null : distance);
         }
+        /*
+        public static bool IntersectEllipsoidEllipsoid(Vector3D e1Center, Vector3D e1Size, Quaternion e1Rot, Vector3D e2Center, Vector3D e2Size, Quaternion e2Rot, out Vector3D collisionPoint)
+        {
+            collisionPoint = Vector3D.Zero;
+
+            // Create transform matrices for the ellipsoids
+            MatrixD transform1 = MatrixD.CreateFromTransformScale(e1Rot, e1Center, Vector3D.One);
+            MatrixD transform2 = MatrixD.CreateFromTransformScale(e2Rot, e2Center, Vector3D.One);
+
+            // Transform the ellipsoid centers and radii into a common space
+            MatrixD transform1Inv = MatrixD.Invert(transform1);
+            MatrixD transform2Inv = MatrixD.Invert(transform2);
+            var center1 = MultiplyPoint(e2Center, transform1Inv);
+            var center2 = MultiplyPoint(e1Center, transform2Inv);
+            var radii1 = MultiplyVector(e2Size, transform1Inv);
+            var radii2 = MultiplyVector(e1Size, transform2Inv);
+
+            // Calculate the distance between the transformed ellipsoid centers
+            Vector3D centerDistance = center1 - center2;
+            double distance = centerDistance.Length();
+            // Calculate the sum of the transformed ellipsoid radii
+            Vector3D radiiSum = radii1 + radii2;
+
+            if (distance <= radiiSum.X && distance <= radiiSum.Y && distance <= radiiSum.Z)
+            {
+                Log.Line($"collision");
+                // The ellipsoids intersect, so find the surface collision points
+                Vector3D surfacePoint1 = center1 + centerDistance.Normalize() * radii1;
+                Vector3D surfacePoint2 = center2 - centerDistance.Normalize() * radii2;
+
+                // Calculate the collision distance
+                double collisionDistance = (radiiSum - centerDistance).Length() / 2;
+
+                // Set the collision point to the midpoint between the surface collision points, minus the collision distance
+                collisionPoint = (surfacePoint1 + surfacePoint2) / 2 - centerDistance.Normalize() * collisionDistance;
+                // Transform the collision point back into world space
+                collisionPoint = Vector3D.Transform(collisionPoint, transform1);
+                //collisionPoint = transform1.MultiplyPoint(collisionPoint);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        */
+        public static bool IntersectEllipsoidEllipsoid(Vector3D e1Center, Vector3D e1Size, Quaternion e1Rot, Vector3D e2Center, Vector3D e2Size, Quaternion e2Rot, out Vector3D collisionPoint)
+        {
+            // Move ellipsoids to the origin
+            Vector3D relativeCenter = e2Center - e1Center;
+            e1Center = Vector3D.Zero;
+            e2Center = relativeCenter;
+
+            // Apply rotation
+            MatrixD e1RotMatrix = MatrixD.CreateFromQuaternion(e1Rot);
+            MatrixD e2RotMatrix = MatrixD.CreateFromQuaternion(e2Rot);
+            MatrixD e1RotMatrixInverse = MatrixD.Invert(e1RotMatrix);
+
+            // Scale ellipsoids to spheres
+            MatrixD e1ScaleMatrix = MatrixD.CreateScale(e1Size);
+            MatrixD e2ScaleMatrix = MatrixD.CreateScale(e2Size);
+            MatrixD e1ScaleMatrixInverse = MatrixD.Invert(e1ScaleMatrix);
+
+            // Transform e2Center and e2RotMatrix to e1's coordinate system
+            e2Center = Vector3D.Transform(e2Center, e1RotMatrixInverse * e1ScaleMatrixInverse * e2ScaleMatrix);
+            e2RotMatrix = e1RotMatrixInverse * e2RotMatrix;
+
+            Vector3D localCollisionPoint;
+            // Check intersection between a sphere and an ellipsoid
+            bool intersection = IntersectSphereEllipsoid(e1Center, 1.0, e2Center, e2Size, e2RotMatrix, out localCollisionPoint);
+
+            // Transform the collision point back to the original coordinate system
+            collisionPoint = Vector3D.Transform(localCollisionPoint, e1ScaleMatrix * e1RotMatrix);
+
+            return intersection;
+        }
+
+        private static bool IntersectSphereEllipsoid(Vector3D sphereCenter, double sphereRadius, Vector3D ellipsoidCenter, Vector3D ellipsoidSize, MatrixD ellipsoidRotMatrix, out Vector3D collisionPoint)
+        {
+            // Move the sphere to the origin
+            Vector3D relativeCenter = ellipsoidCenter - sphereCenter;
+            sphereCenter = Vector3D.Zero;
+            ellipsoidCenter = relativeCenter;
+
+            // Transform the ellipsoid center point to the ellipsoid's local coordinate system
+            Vector3D localEllipsoidCenter = Vector3D.Transform(ellipsoidCenter, ellipsoidRotMatrix);
+
+            // Get the closest point on the ellipsoid to the sphere center
+            Vector3D closestPoint = GetClosestPointOnEllipsoid(localEllipsoidCenter, ellipsoidSize);
+
+            // Calculate the squared distance between the closest point and the sphere center
+            double squaredDistance = (closestPoint - localEllipsoidCenter).LengthSquared();
+
+            // Check if the squared distance is less than or equal to the squared sphere radius
+            bool intersection = squaredDistance <= sphereRadius * sphereRadius;
+
+            // Assign the collision point
+            collisionPoint = closestPoint;
+
+            return intersection;
+        }
+        private static Vector3D GetClosestPointOnEllipsoid(Vector3D point, Vector3D ellipsoidSize)
+        {
+            Vector3D scaledPoint = new Vector3D(point.X / ellipsoidSize.X, point.Y / ellipsoidSize.Y, point.Z / ellipsoidSize.Z);
+            double length = scaledPoint.Length();
+
+            // If the point is inside the ellipsoid, return the point itself
+            if (length <= 1.0)
+            {
+                return point;
+            }
+
+            // If the point is outside the ellipsoid, return the closest point on the ellipsoid surface
+            Vector3D unitScaledPoint = scaledPoint / length;
+            Vector3D closestPoint = new Vector3D(unitScaledPoint.X * ellipsoidSize.X, unitScaledPoint.Y * ellipsoidSize.Y, unitScaledPoint.Z * ellipsoidSize.Z);
+            return closestPoint;
+        }
 
         // Transforms a position by this matrix, with a perspective divide. (generic)
         public static Vector3D MultiplyPoint(Vector3D point, MatrixD matrix)
@@ -159,6 +247,38 @@ namespace DefenseShields.Support
             res.Y = matrix.M12 * vector.X + matrix.M22 * vector.Y + matrix.M32 * vector.Z;
             res.Z = matrix.M13 * vector.X + matrix.M23 * vector.Y + matrix.M33 * vector.Z;
             return res;
+        }
+
+        public static bool IntersectEllipsoidObb(ref MatrixD ellipsoidMatrixInv, ref Vector3D obbCenter, ref Vector3D obbHalfExtent, ref Vector3D shieldHalfExtet, ref Quaternion dividedQuat)
+        {
+            var normSphere = new BoundingSphereD(Vector3D.Zero, 1f);
+            var transObbCenter = Vector3D.Transform(obbCenter, ref ellipsoidMatrixInv);
+            var squishedSize = obbHalfExtent / shieldHalfExtet;
+            var newObb = new MyOrientedBoundingBoxD(transObbCenter, squishedSize, dividedQuat);
+
+            var intersected = newObb.Intersects(ref normSphere);
+
+            normSphere.Center += obbCenter + (Vector3D.Forward * 50);
+            newObb.Center += obbCenter + (Vector3D.Forward * 50);
+            DsDebugDraw.DrawSphere(normSphere, Color.Blue);
+            DsDebugDraw.DrawOBB(newObb, Color.Red);
+            return intersected;
+        }
+
+
+        public static bool IntersectEllipsoidObb(MatrixD ellipsoidMatrixInv, MyOrientedBoundingBoxD obb, MyOrientedBoundingBoxD SOriBBoxD)
+        {
+            var normSphere = new BoundingSphereD(Vector3D.Zero, 1f);
+            DsDebugDraw.DrawSphere(normSphere, Color.Blue);
+            var newObb = new MyOrientedBoundingBoxD(
+                Vector3D.Transform(obb.Center, ellipsoidMatrixInv),
+                obb.HalfExtent / SOriBBoxD.HalfExtent, //Vector3D.Normalize(Vector3D.Transform(obb.HalfExtent, ellipsoidMatrixInv)), 
+                Quaternion.Divide(obb.Orientation, SOriBBoxD.Orientation));
+
+            DsDebugDraw.DrawOBB(newObb, Color.Red);
+            var intersected = newObb.Intersects(ref normSphere);
+
+            return intersected;
         }
 
         public static bool IntersectEllipsoidBox(MatrixD ellipsoidMatrixInv, BoundingBoxD box)
@@ -227,20 +347,7 @@ namespace DefenseShields.Support
             closestWPos = Vector3D.Transform(closestLPos, ref ellipsoidMatrix);
             double distToPoint;
             Vector3D.Distance(ref closestWPos, ref point, out distToPoint);
-            if (ePos.LengthSquared() < 1)
-                distToPoint *= -1;
-
-            return distToPoint;
-        }
-
-        public static double EllipsoidDistanceToPosCanBeNeg(ref MatrixD ellipsoidMatrixInv, ref MatrixD ellipsoidMatrix, ref Vector3D point, out Vector3D closestWPos)
-        {
-            var ePos = Vector3D.Transform(point, ref ellipsoidMatrixInv);
-            Vector3D closestLPos;
-            Vector3D.Normalize(ref ePos, out closestLPos);
-            closestWPos = Vector3D.Transform(closestLPos, ref ellipsoidMatrix);
-            double distToPoint;
-            Vector3D.Distance(ref closestWPos, ref point, out distToPoint);
+            if (ePos.LengthSquared() < 1) distToPoint *= -1;
 
             return distToPoint;
         }
@@ -516,9 +623,8 @@ namespace DefenseShields.Support
             Vector3D hitPos;
             var distFromEllips = EllipsoidDistanceToPos(ref matrixInv, ref matrix, ref center, out hitPos);
 
-            if (distFromEllips > radius || Math.Abs(distFromEllips) > 10)
+            if (distFromEllips > radius)
                 return null;
-
             var sphereCheck = block.Min + block.Max == Vector3I.Zero;
             if (sphereCheck)
                 return hitPos;

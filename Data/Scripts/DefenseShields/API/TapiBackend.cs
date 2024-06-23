@@ -14,7 +14,6 @@ using VRage.ModAPI;
 using VRage.Utils;
 using VRageMath;
 using static VRage.Game.MyObjectBuilder_SessionComponentMission;
-using static VRage.Game.MyObjectBuilder_BehaviorTreeDecoratorNode;
 
 namespace DefenseShields
 {
@@ -59,7 +58,6 @@ namespace DefenseShields
             ["GetShieldBlock"] = new Func<IMyEntity, IMyTerminalBlock>(TAPI_GetShieldBlock),
             ["MatchEntToShieldFast"] = new Func<IMyEntity, bool, IMyTerminalBlock>(TAPI_MatchEntToShieldFast),
             ["MatchEntToShieldFastExt"] = new Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>>?>(TAPI_MatchEntToShieldFastExt),
-            ["MatchEntToShieldFastDetails"] = new Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>?>(TAPI_MatchEntToShieldFastDetails),
             ["ClosestShieldInLine"] = new Func<LineD, bool, MyTuple<float?, IMyTerminalBlock>>(TAPI_ClosestShieldInLine),
             ["IsShieldBlock"] = new Func<IMyTerminalBlock, bool>(TAPI_IsShieldBlock),
             ["GetClosestShield"] = new Func<Vector3D, IMyTerminalBlock>(TAPI_GetClosestShield),
@@ -294,10 +292,76 @@ namespace DefenseShields
             if (posMustBeInside && !CustomCollision.PointInShield(pos, logic.DetectMatrixOutsideInv))
                 return new MyTuple<bool, int, int, float, float>();
 
-            var result = TAPI_GetFaceInfoAndPenChance(block, pos, posMustBeInside);
-            return new MyTuple<bool, int, int, float, float>(result.Item1, result.Item2, result.Item3, result.Item4, result.Item5);
-        }
+            if (logic.DsSet.Settings.SideShunting)
+            {
+                var referenceLocalPosition = logic.MyGrid.PositionComp.LocalMatrixRef.Translation;
+                var worldDirection = pos - referenceLocalPosition;
+                var localPosition = Vector3D.TransformNormal(worldDirection, MatrixD.Transpose(logic.MyGrid.PositionComp.LocalMatrixRef));
+                var impactTransNorm = localPosition - logic.ShieldShapeMatrix.Translation;
 
+                var boxMax = logic.ShieldShapeMatrix.Backward + logic.ShieldShapeMatrix.Right + logic.ShieldShapeMatrix.Up;
+                var boxMin = -boxMax;
+                var box = new BoundingBoxD(boxMin, boxMax);
+
+                var maxWidth = box.Max.LengthSquared();
+                Vector3D norm;
+                Vector3D.Normalize(ref impactTransNorm, out norm);
+                var testLine = new LineD(Vector3D.Zero, norm * maxWidth); //This is to ensure we intersect the box
+                LineD testIntersection;
+                box.Intersect(ref testLine, out testIntersection);
+                var intersection = testIntersection.To;
+                var projForward = Vector3D.IsZero(logic.ShieldShapeMatrix.Forward) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Forward) / logic.ShieldShapeMatrix.Forward.LengthSquared() * logic.ShieldShapeMatrix.Forward;
+                int faceHit = -1;
+                if (projForward.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Forward.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Forward);
+                    var face = dot > 0 ? Session.ShieldSides.Forward: Session.ShieldSides.Backward;
+                    if (logic.RealSideStates[face].Redirected)
+                    {
+                        faceHit = (int)face;
+                    }
+                }
+
+                var projLeft = Vector3D.IsZero(logic.ShieldShapeMatrix.Left) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Left) / logic.ShieldShapeMatrix.Left.LengthSquared() * logic.ShieldShapeMatrix.Left;
+                if (projLeft.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Left.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Left);
+                    var face = dot > 0 ? Session.ShieldSides.Left : Session.ShieldSides.Right;
+                    var lengDiffSqr = projLeft.LengthSquared() - logic.ShieldShapeMatrix.Left.LengthSquared();
+                    var validFace = faceHit == -1 || !MyUtils.IsZero(lengDiffSqr);
+
+                    if (validFace && logic.RealSideStates[face].Redirected)
+                    {
+                        faceHit = (int)face;
+                    }
+
+                }
+
+                var projUp = Vector3D.IsZero(logic.ShieldShapeMatrix.Up) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Up) / logic.ShieldShapeMatrix.Up.LengthSquared() * logic.ShieldShapeMatrix.Up;
+                if (projUp.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Up.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Up);
+                    var face = dot > 0 ? Session.ShieldSides.Up : Session.ShieldSides.Down;
+                    var lengDiffSqr = projUp.LengthSquared() - logic.ShieldShapeMatrix.Up.LengthSquared();
+                    var validFace = faceHit == -1 || !MyUtils.IsZero(lengDiffSqr);
+
+
+                    if (validFace && logic.RealSideStates[face].Redirected)
+                    {                                                                                 
+                        faceHit = (int)face;
+                    }
+
+                }
+                var hitShuntedSide = faceHit != -1;
+                var shuntedFaces = Math.Abs(logic.ShieldRedirectState.X) + Math.Abs(logic.ShieldRedirectState.Y) + Math.Abs(logic.ShieldRedirectState.Z);
+                var shuntMod = !hitShuntedSide ? 1 - (shuntedFaces * Session.ShieldShuntBonus) : 1f;
+                var preventBypassMod = MathHelper.Clamp(shuntedFaces * Session.ShieldBypassBonus, 0f, 1f);
+
+                return new MyTuple<bool, int, int, float, float>(hitShuntedSide, faceHit, shuntedFaces, shuntMod, preventBypassMod);
+            }
+
+            return new MyTuple<bool, int, int, float, float>();
+        }
 
         private static MyTuple<bool, int, int, float, float, float> TAPI_GetFaceInfoAndPenChance(IMyTerminalBlock block, Vector3D pos, bool posMustBeInside = false)
         {
@@ -318,89 +382,94 @@ namespace DefenseShields
             if (posMustBeInside && !CustomCollision.PointInShield(pos, logic.DetectMatrixOutsideInv))
                 return new MyTuple<bool, int, int, float, float, float>();
 
-            var sides = logic.DsState.State.ShieldSides;
             var penChance = 0f;
-            var penStart = logic.DsSet.Settings.AutoManage ? 40f : 20f;
-            var penStartThreshold = 100f - penStart;
-
-            bool sideOffline = false;
-            double minDistance = double.MaxValue;
-            int shuntedFaceHit = -1;
-            for (int i = 0; i < 6; i++)
-            {
-                var faceDirection = logic.DetectMatrixOutside.Forward;
-                switch (i)
-                {
-                    case 1:
-                        faceDirection = -logic.DetectMatrixOutside.Forward;
-                        break;
-                    case 2:
-                        faceDirection = logic.DetectMatrixOutside.Left;
-                        break;
-                    case 3:
-                        faceDirection = -logic.DetectMatrixOutside.Left;
-                        break;
-                    case 4:
-                        faceDirection = logic.DetectMatrixOutside.Up;
-                        break;
-                    case 5:
-                        faceDirection = -logic.DetectMatrixOutside.Up;
-                        break;
-                }
-
-                var faceCenter = logic.WorldEllipsoidCenter + faceDirection;
-                var facePlane = new PlaneD(faceCenter, Vector3D.Normalize(faceDirection));
-                var distanceToFace = Math.Abs(facePlane.DistanceToPoint(pos));
-                //DsDebugDraw.DrawLine(faceCenter + faceDirection, faceCenter - faceDirection, Vector4.One, 5f);
-                //Log.Line($"{distanceToFace} - {Vector3D.Distance(faceCenter, logic.WorldEllipsoidCenter)}- {logic.RealSideStates[(Session.ShieldSides)i].Side.ToString()}[{(Session.ShieldSides)i}]");
-                if (distanceToFace < minDistance)
-                {
-                    minDistance = distanceToFace;
-                    var realFace = logic.RealSideStates[(Session.ShieldSides)i];
-                    var faceId = (int) realFace.Side;
-                    sideOffline = !sides[faceId].Online;
-                    shuntedFaceHit = realFace.Redirected ? faceId : -1;
-                }
-            }
-
-
-            //var shuntName = shuntedFaceHit >= 0 ? ((Session.ShieldSides) shuntedFaceHit).ToString() : "None";
-
-            //MyAPIGateway.Utilities.ShowNotification($"dmg: {shuntName} - {realFace.Side.ToString()} - {sides[(int)realFace.Side].Charge}", 1000);
-
-            //if (((IMyCubeGrid)logic.MyGrid).ControlSystem.IsControlled)
-            //    Log.Line($"Api:{faceName}");
-
-            if (sideOffline)
-                return new MyTuple<bool, int, int, float, float, float>(false, 0, 0, 1f, 0, 1f);
-
-            var hitShuntedSide = shuntedFaceHit != -1;
-            var shuntedFaces = Math.Abs(logic.ShieldRedirectState.X) + Math.Abs(logic.ShieldRedirectState.Y) + Math.Abs(logic.ShieldRedirectState.Z);
-            var shuntMod = !hitShuntedSide ? 1 - (shuntedFaces * Session.ShieldShuntBonus) : logic.DsSet.Settings.AutoManage ? 1 - Session.ShieldShuntBonus : 1f;
-            var preventBypassMod = MathHelper.Clamp(shuntedFaces * Session.ShieldBypassBonus, 0f, 1f);
-
-            var reinforcedPercent = hitShuntedSide ? logic.DsState.State.ShieldPercent + (shuntedFaces * 8) : logic.DsState.State.ShieldPercent;
-            var heatedEnforcedPercent = reinforcedPercent / (1 + (logic.DsState.State.Heat * 0.005));
-
-            if (heatedEnforcedPercent < penStartThreshold)
-            {
-                double x = MathHelperD.Clamp(heatedEnforcedPercent + penStart, 0, 100);
-                double a = 0.0001;
-                double b = -0.02;
-                double c = 1.0;
-
-                penChance = (float) ((a * Math.Pow(x, 2)) + (b * x) + c);
-            }
 
             if (logic.DsSet.Settings.SideShunting)
             {
-                return new MyTuple<bool, int, int, float, float, float>(hitShuntedSide, shuntedFaceHit, shuntedFaces, shuntMod, preventBypassMod, penChance);
-            }
+                var referenceLocalPosition = logic.MyGrid.PositionComp.LocalMatrixRef.Translation;
+                var worldDirection = pos - referenceLocalPosition;
+                var localPosition = Vector3D.TransformNormal(worldDirection, MatrixD.Transpose(logic.MyGrid.PositionComp.LocalMatrixRef));
+                var impactTransNorm = localPosition - logic.ShieldShapeMatrix.Translation;
 
-            var penScaler = logic.DsState.State.ShieldPercent / (1 + (logic.DsState.State.Heat * 0.005f));
-            if (penScaler < penStartThreshold)
+                var boxMax = logic.ShieldShapeMatrix.Backward + logic.ShieldShapeMatrix.Right + logic.ShieldShapeMatrix.Up;
+                var boxMin = -boxMax;
+                var box = new BoundingBoxD(boxMin, boxMax);
+
+                var maxWidth = box.Max.LengthSquared();
+                Vector3D norm;
+                Vector3D.Normalize(ref impactTransNorm, out norm);
+                var testLine = new LineD(Vector3D.Zero, norm * maxWidth); //This is to ensure we intersect the box
+                LineD testIntersection;
+                box.Intersect(ref testLine, out testIntersection);
+                var intersection = testIntersection.To;
+                var projForward = Vector3D.IsZero(logic.ShieldShapeMatrix.Forward) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Forward) / logic.ShieldShapeMatrix.Forward.LengthSquared() * logic.ShieldShapeMatrix.Forward;
+                int faceHit = -1;
+                if (projForward.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Forward.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Forward);
+                    var face = dot > 0 ? Session.ShieldSides.Forward : Session.ShieldSides.Backward;
+                    if (logic.RealSideStates[face].Redirected)
+                    {
+                        faceHit = (int)face;
+                    }
+                }
+
+                var projLeft = Vector3D.IsZero(logic.ShieldShapeMatrix.Left) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Left) / logic.ShieldShapeMatrix.Left.LengthSquared() * logic.ShieldShapeMatrix.Left;
+                if (projLeft.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Left.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Left);
+                    var face = dot > 0 ? Session.ShieldSides.Left : Session.ShieldSides.Right;
+                    var lengDiffSqr = projLeft.LengthSquared() - logic.ShieldShapeMatrix.Left.LengthSquared();
+                    var validFace = faceHit == -1 || !MyUtils.IsZero(lengDiffSqr);
+
+                    if (validFace && logic.RealSideStates[face].Redirected)
+                    {
+                        faceHit = (int)face;
+                    }
+
+                }
+
+                var projUp = Vector3D.IsZero(logic.ShieldShapeMatrix.Up) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Up) / logic.ShieldShapeMatrix.Up.LengthSquared() * logic.ShieldShapeMatrix.Up;
+                if (projUp.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Up.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Up);
+                    var face = dot > 0 ? Session.ShieldSides.Up : Session.ShieldSides.Down;
+                    var lengDiffSqr = projUp.LengthSquared() - logic.ShieldShapeMatrix.Up.LengthSquared();
+                    var validFace = faceHit == -1 || !MyUtils.IsZero(lengDiffSqr);
+
+
+                    if (validFace && logic.RealSideStates[face].Redirected)
+                    {
+                        faceHit = (int)face;
+                    }
+
+                }
+
+                var hitShuntedSide = faceHit != -1;
+                var shuntedFaces = Math.Abs(logic.ShieldRedirectState.X) + Math.Abs(logic.ShieldRedirectState.Y) + Math.Abs(logic.ShieldRedirectState.Z);
+                var shuntMod = !hitShuntedSide ? 1 - (shuntedFaces * Session.ShieldShuntBonus) : 1f;
+                var preventBypassMod = MathHelper.Clamp(shuntedFaces * Session.ShieldBypassBonus, 0f, 1f);
+
+                var reinforcedPercent = hitShuntedSide ? logic.DsState.State.ShieldPercent + (shuntedFaces * 8) : logic.DsState.State.ShieldPercent;
+                var heatedEnforcedPercent = reinforcedPercent / (1 + (logic.DsState.State.Heat * 0.005));
+
+                if (heatedEnforcedPercent < 80)
+                {
+                    double x = MathHelperD.Clamp(heatedEnforcedPercent + 20, 0, 100);
+                    double a = 0.0001;
+                    double b = -0.02;
+                    double c = 1.0;
+
+                    penChance = (float) ((a * Math.Pow(x, 2)) + (b * x) + c);
+                }
+
+                return new MyTuple<bool, int, int, float, float, float>(hitShuntedSide, faceHit, shuntedFaces, shuntMod, preventBypassMod, penChance);
+            }
+            
+            var heatedPercent = logic.DsState.State.ShieldPercent / (1 + (logic.DsState.State.Heat * 0.005));
+            if (heatedPercent < 80)
             {
-                double x = MathHelperD.Clamp(penScaler + penStart, 0, 100);
+                double x = MathHelperD.Clamp(heatedPercent + 20, 0, 100);
                 double a = 0.0001;
                 double b = -0.02;
                 double c = 1.0;
@@ -408,7 +477,7 @@ namespace DefenseShields
                 penChance = (float)((a * Math.Pow(x, 2)) + (b * x) + c);
             }
 
-            return new MyTuple<bool, int, int, float, float, float>(false, 0, 0, logic.DsSet.Settings.AutoManage ? 1 - Session.ShieldShuntBonus : 1f, 0, penChance);
+            return new MyTuple<bool, int, int, float, float, float>(false, 0, 0, 1f, 0, penChance);
         }
 
         private static float? TAPI_PointAttackShieldCon(IMyTerminalBlock block, Vector3D pos, long attackerId, float damage, float secondaryDamage, bool energy, bool drawParticle, bool posMustBeInside = false) //inlined for performance
@@ -417,7 +486,7 @@ namespace DefenseShields
             if (logic == null || posMustBeInside && !CustomCollision.PointInShield(pos, logic.DetectMatrixOutsideInv))
                 return null;
 
-            var pendingDamage = logic.ChargeMgr.Absorb > 0 ? logic.ChargeMgr.Absorb : 0;
+            var pendingDamage = logic.ChargeMgr.HitType > 0 ? logic.ChargeMgr.Absorb : 0;
             var primaryDamage = damage;
             var shieldHp = logic.DsState.State.Charge * DefenseShields.ConvToHp;
 
@@ -917,8 +986,8 @@ namespace DefenseShields
             {
                 var s = c.DefenseShields;
                 var state = s.DsState.State;
-                info.Item1 = state.Enhancer && c.Modulator?.ModSet != null && c.Modulator.ModSet.Settings.ReInforceEnabled;
-                info.Item2 = state.Enhancer && c.Modulator?.ModSet != null && c.Modulator.ModSet.Settings.EmpEnabled;
+                info.Item1 = state.ReInforce;
+                info.Item2 = state.EwarProtection;
                 info.Item3 = state.ModulateKinetic;
                 info.Item4 = state.ModulateEnergy;
             }
@@ -948,40 +1017,6 @@ namespace DefenseShields
                         Item6 = state.Heat,
                     },
                     Item3 = { Item1 = s.DetectMatrixOutsideInv, Item2 = s.DetectMatrixOutside }
-                };
-                return info;
-            }
-            return null;
-        }
-
-        private static MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>? TAPI_MatchEntToShieldFastDetails(MyEntity entity, bool onlyIfOnline)
-        {
-            if (entity == null) return null;
-            ShieldGridComponent c;
-            if (Session.Instance.IdToBus.TryGetValue(entity.EntityId, out c) && c?.DefenseShields != null)
-            {
-                if (onlyIfOnline && (!c.DefenseShields.DsState.State.Online || c.DefenseShields.DsState.State.Lowered)) return null;
-                var s = c.DefenseShields;
-                var state = s.DsState.State;
-                var penStart = s.DsSet.Settings.AutoManage ? 40f : 20f;
-                var penStartThreshold = 100f - penStart;
-                var penScaler = s.DsState.State.ShieldPercent / (1 + (s.DsState.State.Heat * 0.005f));
-                var shuntedCount = Math.Abs(s.ShieldRedirectState.X) + Math.Abs(s.ShieldRedirectState.Y) + Math.Abs(s.ShieldRedirectState.Z);
-                var info = new MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>
-                {
-                    Item1 = s.Shield,
-                    Item2 =
-                    {
-                        Item1 = !c.DefenseShields.ReInforcedShield,
-                        Item2 = s.DsSet.Settings.SideShunting && shuntedCount > 0,
-                        Item3 = state.Charge,
-                        Item4 = s.ShieldMaxCharge,
-                        Item5 = state.ShieldPercent,
-                        Item6 = state.Heat,
-                    },
-                    Item3 = { Item1 = s.DetectMatrixOutsideInv, Item2 = s.DetectMatrixOutside },
-
-                    Item4 = { Item1 = s.DsSet.Settings.AutoManage, Item2 = s.ChargeMgr.SidesOnline != 6, Item3 = penScaler, Item4 = penStartThreshold }
                 };
                 return info;
             }
@@ -1039,7 +1074,7 @@ namespace DefenseShields
             var closestDist = double.MaxValue;
             foreach (var s in Session.Instance.ActiveShields.Keys)
             {
-                if (Vector3D.DistanceSquared(s.WorldEllipsoidCenter, pos) > Session.Instance.SyncDistSqr) continue;
+                if (Vector3D.DistanceSquared(s.DetectionCenter, pos) > Session.Instance.SyncDistSqr) continue;
 
                 var sInv = s.DetectMatrixOutsideInv;
                 var sMat = s.DetectMatrixOutside;

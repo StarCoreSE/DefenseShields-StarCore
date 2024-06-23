@@ -29,7 +29,7 @@ namespace DefenseShields
 
         internal static readonly MyConcurrentPool<MyProtectors> ProtSets = new MyConcurrentPool<MyProtectors>(150, null, 1000);
 
-        internal const int ClientCfgVersion = 16;
+        internal const int ClientCfgVersion = 15;
         internal const string ClientCfgName = "DefenseShieldsClient.cfg";
 
         internal readonly int[] SlotCnt = new int[9];
@@ -209,7 +209,7 @@ namespace DefenseShields
 
         internal readonly MyStringId HudIconBlackShield = MyStringId.GetOrCompute("DS_ShieldBlack");
         internal readonly MyStringId HudIconWhiteShield = MyStringId.GetOrCompute("DS_ShieldWhite");
-        internal readonly MyStringId HudIconFortifyShield = MyStringId.GetOrCompute("DS_ShieldFortify");
+
         internal readonly MyStringId HudIconOffline = MyStringId.GetOrCompute("DS_ShieldOffline");
         internal readonly MyStringId HudIconHealth10 = MyStringId.GetOrCompute("DS_ShieldHealth10");
         internal readonly MyStringId HudIconHealth20 = MyStringId.GetOrCompute("DS_ShieldHealth20");
@@ -251,25 +251,15 @@ namespace DefenseShields
         internal readonly MyStringId[] HudHpLossIcons =
         {
             MyStringId.NullOrEmpty,
-            MyStringId.GetOrCompute("DS_ShieldHPLoss95"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss90"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss85"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss80"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss75"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss70"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss65"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss60"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss55"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss50"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss45"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss40"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss35"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss30"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss25"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss20"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss15"),
             MyStringId.GetOrCompute("DS_ShieldHPLoss10"),
-            MyStringId.GetOrCompute("DS_ShieldHPLoss5"),
         };
 
         internal readonly MyStringId[] HudPenChanceIcons =
@@ -450,7 +440,6 @@ namespace DefenseShields
         internal IMyTerminalControlCheckbox HideActiveCheckBox { get; set; }
         internal IMyTerminalControlCheckbox NoWarningSoundsCheckBox { get; set; }
         internal IMyTerminalControlCheckbox DimShieldHitsCheckBox { get; set; }
-        internal IMyTerminalControlOnOffSwitch AutoManage { get; set; }
 
         internal IMyTerminalControlCheckbox SendToHudCheckBox { get; set; }
         internal IMyTerminalControlOnOffSwitch ToggleShield { get; set; }
@@ -472,7 +461,7 @@ namespace DefenseShields
         internal IMyTerminalControlCheckbox ModVoxels { get; set; }
         internal IMyTerminalControlCheckbox ModGrids { get; set; }
         internal IMyTerminalControlCheckbox ModAllies { get; set; }
-        internal IMyTerminalControlCheckbox AggregateModulation { get; set; }
+        internal IMyTerminalControlCheckbox PassiveModulation { get; set; }
         internal IMyTerminalControlCheckbox ModEmp { get; set; }
         internal IMyTerminalControlCheckbox ModReInforce { get; set; }
         internal IMyTerminalControlSeparator ModSep1 { get; set; }

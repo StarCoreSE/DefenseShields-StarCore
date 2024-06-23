@@ -144,7 +144,8 @@ namespace DefenseShields
                             else info.Amount *= shield.DsState.State.ModulateKinetic;
 
                             var noHits = !DedicatedServer && shield.ChargeMgr.Absorb < 1;
-                            if (noHits)
+                            var hitSlotAvailable = noHits & (bullet && shield.KineticCoolDown == -1) || (!bullet && shield.EnergyCoolDown == -1);
+                            if (hitSlotAvailable)
                             {
                                 lock (shield.HandlerImpact)
                                 {
@@ -186,8 +187,7 @@ namespace DefenseShields
                         {
                             if (attackingVoxel != null)
                             {
-                                var noHits = !DedicatedServer && iShield.ChargeMgr.Absorb < 1;
-                                if (iShield.ChargeMgr.Absorb < 1 && iShield.ChargeMgr.WorldImpactPosition == Vector3D.NegativeInfinity && noHits)
+                                if (iShield.ChargeMgr.Absorb < 1 && iShield.ChargeMgr.WorldImpactPosition == Vector3D.NegativeInfinity && iShield.KineticCoolDown == -1)
                                 {
                                     attackingVoxel.RootVoxel.RequestVoxelOperationElipsoid(Vector3.One, iShield.DetectMatrixOutside, 0, MyVoxelBase.OperationType.Cut);
                                 }

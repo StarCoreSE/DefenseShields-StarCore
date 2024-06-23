@@ -8,7 +8,6 @@ namespace DefenseShields
     using Sandbox.Game.Entities;
     using Sandbox.ModAPI;
     using System.Text;
-    using static VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GameDefinition;
 
     internal static class ModUi
     {
@@ -16,7 +15,7 @@ namespace DefenseShields
         internal static void CreateUi(IMyTerminalBlock modualator)
         {
             Session.Instance.CreateModulatorUi(modualator);
-            Session.Instance.ModDamage.Enabled = GetAggregateModulationVis;
+            Session.Instance.ModDamage.Enabled = block => true;
             Session.Instance.ModDamage.Visible = ShowControl;
             Session.Instance.ModVoxels.Enabled = block => true;
             Session.Instance.ModVoxels.Visible = ShowVoxels;
@@ -24,8 +23,8 @@ namespace DefenseShields
             Session.Instance.ModGrids.Visible = ShowControl;
             Session.Instance.ModAllies.Enabled = block => true;
             Session.Instance.ModAllies.Visible = ShowControl;
-            Session.Instance.AggregateModulation.Enabled = GetAggregateModulationVis;
-            Session.Instance.AggregateModulation.Visible = ShowControl;
+            Session.Instance.PassiveModulation.Enabled = block => true;
+            Session.Instance.PassiveModulation.Visible = ShowControl;
             Session.Instance.ModEmp.Enabled = block => false;
             Session.Instance.ModEmp.Visible = ShowEMP;
             Session.Instance.ModReInforce.Enabled = block => true;
@@ -45,7 +44,7 @@ namespace DefenseShields
         internal static void ModWriter(IMyTerminalBlock block, StringBuilder stringBuilder)
         {
             var comp = block?.GameLogic?.GetAs<Modulators>();
-            if (comp?.ModSet?.Settings == null || MyUtils.IsZero(comp.ModSet.Settings.ModulateDamage, 1E-02F) || comp.ShieldComp?.DefenseShields != null && comp.ShieldComp.DefenseShields.DsSet.Settings.AutoManage)
+            if (comp?.ModSet?.Settings == null || MyUtils.IsZero(comp.ModSet.Settings.ModulateDamage, 1E-02F))
             {
                 stringBuilder.Append("balanced");
                 return;
@@ -61,11 +60,7 @@ namespace DefenseShields
         internal static float GetDamage(IMyTerminalBlock block)
         {
             var comp = block?.GameLogic?.GetAs<Modulators>();
-            if (comp == null)
-                return 0f;
-
-            var autoManage = comp.ShieldComp?.DefenseShields != null && comp.ShieldComp.DefenseShields.DsSet.Settings.AutoManage;
-            return autoManage ? 0 : comp.ModSet.Settings.ModulateDamage;
+            return comp?.ModSet.Settings.ModulateDamage ?? 0;
         }
 
         internal static void SetDamage(IMyTerminalBlock block, float newValue)
@@ -80,17 +75,6 @@ namespace DefenseShields
             comp.SettingsUpdated = true;
             comp.ClientUiUpdate = true;
             ((MyCubeBlock)block).UpdateTerminal();
-        }
-
-        internal static bool GetDamageVis(IMyTerminalBlock block)
-        {
-
-            var comp = block?.GameLogic?.GetAs<Modulators>();
-            if (comp == null)
-                return false;
-
-            var autoManage = comp.ShieldComp?.DefenseShields != null && comp.ShieldComp.DefenseShields.DsSet.Settings.AutoManage;
-            return !autoManage;
         }
 
         internal static void ComputeDamage(Modulators comp, float input)
@@ -171,13 +155,13 @@ namespace DefenseShields
             comp.ModSet.SaveSettings();
         }
 
-        internal static bool GetAggregateModulation(IMyTerminalBlock block)
+        internal static bool GetPassiveModulation(IMyTerminalBlock block)
         {
             var comp = block?.GameLogic?.GetAs<Modulators>();
             return comp?.ModSet.Settings.AggregateModulation ?? false;
         }
 
-        internal static void SetAggregateModulation(IMyTerminalBlock block, bool newValue)
+        internal static void SetPassiveModulation(IMyTerminalBlock block, bool newValue)
         {
             var comp = block?.GameLogic?.GetAs<Modulators>();
             if (comp == null) return;
@@ -185,18 +169,6 @@ namespace DefenseShields
             comp.ModSet.NetworkUpdate();
             comp.ModSet.SaveSettings();
         }
-
-        internal static bool GetAggregateModulationVis(IMyTerminalBlock block)
-        {
-            var comp = block?.GameLogic?.GetAs<Modulators>();
-            if (comp == null)
-                return false;
-
-            var autoManage = comp.ShieldComp?.DefenseShields != null && comp.ShieldComp.DefenseShields.DsSet.Settings.AutoManage;
-
-            return !autoManage;
-        }
-
 
         internal static bool ShowEMP(IMyTerminalBlock block)
         {

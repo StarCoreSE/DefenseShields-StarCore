@@ -37,8 +37,8 @@ namespace DefenseShields
             [ProtoMember(7)] public string Down = MyKeys.NumPad3.ToString();
             [ProtoMember(8)] public string Front = MyKeys.NumPad8.ToString();
             [ProtoMember(9)] public string Back = MyKeys.NumPad2.ToString();
-            [ProtoMember(10)] public Vector2D ShieldIconPos = new Vector2D(-0.435, -0.78);
-            [ProtoMember(11)] public float HudScale = 1.8f;
+            [ProtoMember(10)] public Vector2D ShieldIconPos = new Vector2D(-0.435, -0.82);
+            [ProtoMember(11)] public float HudScale = 1.45f;
             [ProtoMember(12)] public string Kinetic = MyKeys.NumPad7.ToString();
             [ProtoMember(13)] public string Energy = MyKeys.NumPad1.ToString();
             [ProtoMember(14)] public bool Notices = true;
@@ -182,16 +182,16 @@ namespace DefenseShields
             newSettings.Energy = oldSettings.Energy;
             newSettings.Kinetic = oldSettings.Kinetic;
 
-            newSettings.HudScale = oldSettings.HudScale; 
+            newSettings.HudScale = oldSettings.HudScale;
             newSettings.ShieldIconPos = oldSettings.ShieldIconPos;
 
             newSettings.MaxHitRings = oldSettings.MaxHitRings;
             newSettings.ShowHitRings = oldSettings.ShowHitRings;
 
-            if (oldSettings.Version <= 15)
+            if (oldSettings.Version <= 14)
             {
-                newSettings.HudScale = 1.8f;
-                newSettings.ShieldIconPos = new Vector2D(-0.435, -0.78);
+                newSettings.HudScale = 1.45f;
+                newSettings.ShieldIconPos = new Vector2D(-0.435, -0.82);
             }
         }
 

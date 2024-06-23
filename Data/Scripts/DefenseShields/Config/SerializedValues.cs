@@ -29,30 +29,17 @@
         [ProtoMember(19), DefaultValue(-1)] public float PowerScaler = -1f;
         [ProtoMember(20), DefaultValue(-1)] public float SizeScaler = -1f;
         [ProtoMember(21), DefaultValue(-1)] public float MwPerCell = -1f;
-        [ProtoMember(22), DefaultValue(-1)] public float MaxHP = -1f;
-        [ProtoMember(23), DefaultValue(-1)] public float MinHP = -1f;
-        [ProtoMember(24), DefaultValue(-1)] public float MaxRecharge = -1f;
-        [ProtoMember(25), DefaultValue(-1)] public float MinRecharge = -1f;
-    }
-
-    [ProtoContract]
-    public class ShieldSideInfo
-    {
-        [ProtoMember(1)] internal float Charge;
-        [ProtoMember(2)] internal bool Online;
-        public float Absorb;
-        public uint NextOnline;
     }
 
     [ProtoContract]
     public class ControllerStateValues
     {
         [ProtoMember(1), DefaultValue(-1)] public float Charge;
-        //[ProtoMember(2), DefaultValue(-1)] public double IncreaseO2ByFPercent = 0f;
+        [ProtoMember(2), DefaultValue(-1)] public double IncreaseO2ByFPercent = 0f;
         [ProtoMember(3), DefaultValue(1f)] public float ModulateEnergy = 1f;
         [ProtoMember(4), DefaultValue(1f)] public float ModulateKinetic = 1f;
-        [ProtoMember(5), DefaultValue(1f)] public int EnhancerPowerMulti = 1;
-        [ProtoMember(6), DefaultValue(1f)] public int EnhancerProtMulti = 1;
+        [ProtoMember(5), DefaultValue(-1)] public int EnhancerPowerMulti = 1;
+        [ProtoMember(6), DefaultValue(-1)] public int EnhancerProtMulti = 1;
         [ProtoMember(7)] public bool Online = false;
         [ProtoMember(8)] public bool Overload = false;
         [ProtoMember(9)] public bool Remodulate = false;
@@ -63,7 +50,7 @@
         [ProtoMember(14)] public bool FieldBlocked = false;
         [ProtoMember(15)] public bool InFaction = false;
         [ProtoMember(16)] public bool IsOwner = false;
-        [ProtoMember(17), DefaultValue(true)] public bool ControllerGridAccess = true;
+        [ProtoMember(17)] public bool ControllerGridAccess = true;
         [ProtoMember(18)] public bool NoPower = false;
         [ProtoMember(19)] public bool Enhancer = false;
         [ProtoMember(20), DefaultValue(-1)] public double EllipsoidAdjust = Math.Sqrt(2);
@@ -71,11 +58,11 @@
         [ProtoMember(22), DefaultValue(-1)] public int Mode = -1;
         [ProtoMember(23)] public bool EmitterLos;
         [ProtoMember(24)] public float ShieldFudge;
-        //[ProtoMember(25)] public bool Message;
+        [ProtoMember(25)] public bool Message;
         [ProtoMember(26)] public int Heat;
         [ProtoMember(27), DefaultValue(-1)] public float ShieldPercent;
-        //[ProtoMember(28)] public bool EmpOverLoad = false;
-        //[ProtoMember(29)] public bool EwarProtection = false;
+        [ProtoMember(28)] public bool EmpOverLoad = false;
+        [ProtoMember(29)] public bool EwarProtection = false;
         [ProtoMember(30)] public float CapModifier;
         [ProtoMember(31)] public bool ReInforce = false;
         [ProtoMember(32)] public long ActiveEmitterId;
@@ -86,13 +73,12 @@
         [ProtoMember(37)] public Vector3 RealGridHalfExtents;
         [ProtoMember(38), DefaultValue(1)] public float NerfScaler = 1;
         [ProtoMember(39)] public float MaxHpReductionScaler;
-        //[ProtoMember(40)] public float ChargeTop;
-        //[ProtoMember(41)] public float ChargeBottom;
-        //[ProtoMember(42)] public float ChargeLeft;
-        //[ProtoMember(43)] public float ChargeRight;
-        //[ProtoMember(44)] public float ChargeFront;
-        //[ProtoMember(45)] public float ChargeBack;
-        [ProtoMember(46)] public ShieldSideInfo[] ShieldSides;
+        [ProtoMember(40)] public float ChargeTop;
+        [ProtoMember(41)] public float ChargeBottom;
+        [ProtoMember(42)] public float ChargeLeft;
+        [ProtoMember(43)] public float ChargeRight;
+        [ProtoMember(44)] public float ChargeFront;
+        [ProtoMember(45)] public float ChargeBack;
     }
 
     [ProtoContract]
@@ -124,13 +110,12 @@
         [ProtoMember(24)] public bool ShowRedirect;
         [ProtoMember(25)] public int SinkHeatCount;
         [ProtoMember(26), DefaultValue(-1)] public float PowerWatts = 999f;
-        [ProtoMember(27), DefaultValue(false)] public bool AutoManage = false;
     }
 
     [ProtoContract]
     public class EmitterStateValues
     {
-        //[ProtoMember(1)] public bool UnusedWasOnline;
+        [ProtoMember(1)] public bool UnusedWasOnline;
         [ProtoMember(2), DefaultValue(true)] public bool Los = true;
         [ProtoMember(3)] public bool Link;
         [ProtoMember(4)] public bool Suspend;
@@ -138,7 +123,7 @@
         [ProtoMember(6)] public bool Compatible;
         [ProtoMember(7), DefaultValue(-1)] public int Mode;
         [ProtoMember(8), DefaultValue(-1)] public double BoundingRange;
-        //[ProtoMember(9)] public bool UnusedWasCompact;
+        [ProtoMember(9)] public bool UnusedWasCompact;
         [ProtoMember(10)] public long ActiveEmitterId;
         [ProtoMember(11)] public uint MId;
     }
@@ -161,7 +146,7 @@
         [ProtoMember(1)] public bool EmpEnabled = false;
         [ProtoMember(2), DefaultValue(true)] public bool ModulateVoxels = true;
         [ProtoMember(3)] public bool ModulateGrids = false;
-        [ProtoMember(4)] public int ModulateDamage = 0;
+        [ProtoMember(4), DefaultValue(-1)] public int ModulateDamage = 100;
         [ProtoMember(5)] public bool ReInforceEnabled = false;
         [ProtoMember(6)] public uint MId;
         [ProtoMember(7)] public bool AllowAllies = false;
@@ -217,11 +202,11 @@
     [ProtoContract]
     public class EnhancerSettingsValues
     {
-        //[ProtoMember(1)] public bool Unused;
-        //[ProtoMember(2), DefaultValue(true)] public bool ModulateVoxels = true;
-        //[ProtoMember(3)] public bool ModulateGrids = false;
-        //[ProtoMember(4), DefaultValue(-1)] public int ModulateDamage = 100;
-        //[ProtoMember(5)] public uint MId;
+        [ProtoMember(1)] public bool Unused;
+        [ProtoMember(2), DefaultValue(true)] public bool ModulateVoxels = true;
+        [ProtoMember(3)] public bool ModulateGrids = false;
+        [ProtoMember(4), DefaultValue(-1)] public int ModulateDamage = 100;
+        [ProtoMember(5)] public uint MId;
     }
 
     [ProtoContract]

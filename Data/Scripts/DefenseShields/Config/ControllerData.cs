@@ -12,10 +12,9 @@
         internal ControllerState(IMyFunctionalBlock shield)
         {
             Shield = shield;
-            InitShieldSides();
         }
 
-        internal ControllerStateValues State = new ControllerStateValues();
+        internal ControllerStateValues State { get; set; } = new ControllerStateValues();
 
         internal void StorageInit()
         {
@@ -47,21 +46,10 @@
                 {
                     State = loadedState;
                     loadedSomething = true;
-                    if (State.ShieldSides == null)
-                        InitShieldSides();
                 }
-                else
-                    InitShieldSides();
                 if (Session.Enforced.Debug == 3) Log.Line($"Loaded - ShieldId [{Shield.EntityId}]");
             }
             return loadedSomething;
-        }
-
-        private void InitShieldSides()
-        {
-            State.ShieldSides = new ShieldSideInfo[6];
-            for (int i = 0; i < State.ShieldSides.Length; i++)
-                State.ShieldSides[i] = new ShieldSideInfo();
         }
 
         internal void NetworkUpdate()

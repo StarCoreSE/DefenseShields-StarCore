@@ -1,23 +1,30 @@
 ﻿using System;
+using System.Collections.Generic;
 using DefenseShields.Support;
-using Sandbox.ModAPI;
 using VRage.Utils;
 using VRageMath;
-using static VRage.Game.MyObjectBuilder_ControllerSchemaDefinition;
 
 namespace DefenseShields
 {
     public partial class DefenseShields
     {
+        internal class ShieldSideInfo
+        {
+            internal float Absorb;
+            internal float Charge;
+            internal float ChargeNorm;
+            internal bool Online;
+            internal uint NextOnline;
+        }
+
         internal class ShieldChargeMgr
         {
             internal const float ConvToWatts = 0.01f;
-            private const uint SideDownInterval = 900;
 
             internal readonly RunningAverageCalculator NormalAverage = new RunningAverageCalculator(1800);
 
+            internal readonly Dictionary<Session.ShieldSides, ShieldSideInfo> AbsorbSides = new Dictionary<Session.ShieldSides, ShieldSideInfo>();
             internal DefenseShields Controller;
-            internal int SidesOnline;
             internal float Absorb;
             internal float AbsorbHeat;
             internal float ImpactSize = 9f;
@@ -30,6 +37,7 @@ namespace DefenseShields
             internal float AverageNormDamage;
             internal uint LastDamageTick;
             internal uint LastDamageResetTick;
+
             internal HitType HitType;
             internal bool HitWave;
             internal bool WebDamage;
@@ -41,18 +49,21 @@ namespace DefenseShields
                 Charge,
                 Discharge,
                 Overload,
-                OverCharge,
                 Zero,
             }
 
+            internal ShieldChargeMgr()
+            {
+                for (int i = 0; i < 6; i++)
+                    AbsorbSides[(Session.ShieldSides) i] = new ShieldSideInfo();
+            }
 
             internal void DoDamage(float damage, float impactSize, bool energy, Vector3D position, bool hitWave, bool webDamage, float heatScaler = 1, bool setRender = true)
             {
                 Session.ShieldSides face;
                 GetFace(position, out face);
-                var sideInfo = Controller.DsState.State.ShieldSides[(int)face];
 
-                if (setRender && sideInfo.Online) {
+                if (setRender) {
                     HitWave = hitWave;
                     WorldImpactPosition = position;
                     ImpactSize = impactSize;
@@ -83,181 +94,72 @@ namespace DefenseShields
                     RawKineticDamage += (damage * Controller.DsState.State.ModulateEnergy);
                 }
 
+                var sideInfo = AbsorbSides[face];
                 sideInfo.Absorb += damage;
             }
 
             internal void SetCharge(float amount, ChargeMode type)
             {
-                var state = Controller.DsState.State;
-                var relativeThreshold = 0.05f * Controller.ShieldChargeBase; // 5% threshold
-                var previousCharge = state.Charge;
 
                 if (type == ChargeMode.Overload)
                 {
-                    state.Charge = -(Controller.ShieldMaxCharge * 2);
-                    ChargeSide(type);
-                }
-                else if (type == ChargeMode.OverCharge)
-                {
-                    state.Charge = amount;
-                    ChargeSide(type);
+                    Controller.DsState.State.Charge = -(Controller.ShieldMaxCharge * 2);
                 }
                 else if (type == ChargeMode.Zero)
                 {
-                    state.Charge = 0;
-                    ChargeSide(type);
+                    Controller.DsState.State.Charge = 0;
                 }
                 else if (type == ChargeMode.Set)
                 {
-                    state.Charge = amount;
-                    ChargeSide(type);
+                    Controller.DsState.State.Charge = amount;
                 }
                 else if (type == ChargeMode.Charge)
                 {
-                    state.Charge += amount;
+                    Controller.DsState.State.Charge += amount;
                 }
                 else
                 {
-                    state.Charge -= amount;
-
-                    if (!state.ReInforce)
-                        ChargeSide(type);
+                    Controller.DsState.State.Charge -= amount;
+                    //ChargeSide(type);
                 }
-
-                if (Math.Abs(state.Charge - previousCharge) > relativeThreshold)
-                    Controller.StateChangeRequest = true;
             }
 
             internal void ChargeSide(ChargeMode type)
             {
-                var sides = Controller.DsState.State.ShieldSides;
-                var maxSides = sides.Length;
-                var maxSideCharge = Controller.ShieldChargeBase / maxSides;
-                var relativeThreshold = 0.05f * maxSideCharge; // 5% threshold
-
                 switch (type)
                 {
                     case ChargeMode.Set:
-                        if (Controller.DsState.State.Charge <= 0)
-                            Clear();
-                        else if (Session.Instance.IsServer)
-                        {
-                            for (int i = 0; i < maxSides; i++)
-                            {
-                                var sideId = (Session.ShieldSides) i;
-                                var side = sides[(int) sideId];
-
-                                side.Charge = maxSideCharge;
-                                side.Online = true;
-                            }
-
-                            SidesOnline = 6;
-                        }
                         break;
                     case ChargeMode.Charge:
-                        var heatSinkActive = Controller.DsSet.Settings.SinkHeatCount > Controller.HeatSinkCount;
-                        var chargeEfficiency = heatSinkActive ? 2.5f : 0.5f;
-                        var reducer = (3 + Controller.ExpChargeReduction) / 4;
-                        var chargeBuffer = Controller.ShieldPeakRate / 3;
-                        var chargeRate = Controller.ExpChargeReduction > 0 && !Controller.DsSet.Settings.AutoManage ? chargeBuffer / reducer : chargeBuffer;
-                        var amount = chargeRate * (maxSides * chargeEfficiency);
-                        int activeSides = Controller.DsSet.Settings.SideShunting ? maxSides - Controller.ShuntedSideCount() : maxSides;
-                        SidesOnline = 0;
-                        for (int i = 0; i < maxSides; i++)
+                        for (int i = 0; i < 6; i++)
                         {
-                            var sideId = (Session.ShieldSides)i;
-                            var side = sides[(int) sideId];
-
-                            if (side.Online)
-                                ++SidesOnline;
-
-                            if (maxSides != 6 && Controller.IsSideShunted(sideId))
-                                continue;
-
-                            var chargePerSide = amount / activeSides;
-                            var previousCharge = side.Charge;
-
-                            if (side.Charge + chargePerSide > maxSideCharge)
-                            {
+                            var side = AbsorbSides[(Session.ShieldSides)i];
+                            side.Charge += Controller.ShieldChargeRate;
+                            var maxSideCharge = Controller.ShieldChargeBase / 6;
+                            if (side.Charge > maxSideCharge)
                                 side.Charge = maxSideCharge;
-                            }
-                            else
-                            {
-                                side.Charge += chargePerSide;
-                            }
-
-                            if (Session.Instance.IsServer && !side.Online && Session.Instance.Tick >= side.NextOnline)
-                            {
-                                side.Online = true;
-                                Controller.StateChangeRequest = true;
-                            }
-
-                            if (Math.Abs(side.Charge - previousCharge) > relativeThreshold )
-                                Controller.StateChangeRequest = true;
                         }
-
                         break;
                     case ChargeMode.Discharge:
-
-                        SidesOnline = 0;
-
-                        for (int i = 0; i < maxSides; i++)
+                        for (int i = 0; i < 6; i++)
                         {
-                            var side = sides[i];
-
-
-                            if (!side.Online)
-                            {
-                                side.Absorb = 0;
-                                continue;
-                            }
-
-                            var previousCharge = side.Charge;
-                            side.Charge -= (side.Absorb * ConvToWatts);
-                            side.Absorb = 0;
-
-                            if (Session.Instance.IsServer && side.Charge <= 0)
-                            {
-                                side.Online = false;
-                                side.NextOnline = Session.Instance.Tick + SideDownInterval;
-                                side.Charge = 0;
-                                Controller.StateChangeRequest = true;
-                            }
-
-                            if (side.Online)
-                                ++SidesOnline;
-
-                            if (Math.Abs(side.Charge - previousCharge) > relativeThreshold)
-                                Controller.StateChangeRequest = true;
+                            var side = AbsorbSides[(Session.ShieldSides)i];
+                            side.Charge -= side.Absorb;
                         }
                         break;
                     case ChargeMode.Overload:
+                        break;
                     case ChargeMode.Zero:
-                        Clear();
                         break;
                     default:
                         break;
                 }
             }
 
-            internal void ReportSideStatus()
+            internal float SideHealthRatio(Session.ShieldSides shieldSide)
             {
-                var sides = Controller.DsState.State.ShieldSides;
-                int totalSides = sides.Length;
-                for (int i = 0; i < totalSides; i++)
-                {
-                    bool offline;
-                    MyAPIGateway.Utilities.ShowNotification(((Session.ShieldSides)i).ToString() + ": " + SideHealthRatio((Session.ShieldSides)i, out offline).ToString(), 16);
-                }
-            }
-
-            internal float SideHealthRatio(Session.ShieldSides shieldSide, out bool offline)
-            {
-                var sides = Controller.DsState.State.ShieldSides;
-                int totalSides = sides.Length;
-                var maxHealth = Controller.ShieldChargeBase / totalSides;
-                var side = sides[(int) shieldSide];
-                offline = !side.Online;
+                var maxHealth = Controller.ShieldChargeBase / 6;
+                var side = AbsorbSides[shieldSide];
                 var currentHealth = (float)MathHelperD.Clamp(side.Charge, 0, maxHealth);
 
                 var ratioToFull = currentHealth / maxHealth;
@@ -266,39 +168,64 @@ namespace DefenseShields
 
             private void GetFace(Vector3D pos, out Session.ShieldSides closestFaceHit)
             {
-                closestFaceHit = Session.ShieldSides.Forward;
-                double minDistance = double.MaxValue;
-                for (int i = 0; i < 6; i++)
-                {
-                    var faceDirection = Controller.DetectMatrixOutside.Forward;
-                    switch (i)
-                    {
-                        case 1:
-                            faceDirection = -Controller.DetectMatrixOutside.Forward;
-                            break;
-                        case 2:
-                            faceDirection = Controller.DetectMatrixOutside.Left;
-                            break;
-                        case 3:
-                            faceDirection = -Controller.DetectMatrixOutside.Left;
-                            break;
-                        case 4:
-                            faceDirection = Controller.DetectMatrixOutside.Up;
-                            break;
-                        case 5:
-                            faceDirection = -Controller.DetectMatrixOutside.Up;
-                            break;
-                    }
+                var logic = Controller;
+                var referenceLocalPosition = logic.MyGrid.PositionComp.LocalMatrixRef.Translation;
+                var worldDirection = pos - referenceLocalPosition;
+                var localPosition = Vector3D.TransformNormal(worldDirection, MatrixD.Transpose(logic.MyGrid.PositionComp.LocalMatrixRef));
+                var impactTransNorm = localPosition - logic.ShieldShapeMatrix.Translation;
 
-                    var faceCenter = Controller.WorldEllipsoidCenter + faceDirection;
-                    var facePlane = new PlaneD(faceCenter, Vector3D.Normalize(faceDirection));
-                    var distanceToFace = Math.Abs(facePlane.DistanceToPoint(pos));
-                    if (distanceToFace < minDistance)
-                    {
-                        minDistance = distanceToFace;
-                        closestFaceHit = Controller.RealSideStates[(Session.ShieldSides)i].Side;
-                    }
+                var boxMax = logic.ShieldShapeMatrix.Backward + logic.ShieldShapeMatrix.Right + logic.ShieldShapeMatrix.Up;
+                var boxMin = -boxMax;
+                var box = new BoundingBoxD(boxMin, boxMax);
+
+                var maxWidth = box.Max.LengthSquared();
+                Vector3D norm;
+                Vector3D.Normalize(ref impactTransNorm, out norm);
+                var testLine = new LineD(Vector3D.Zero, norm * maxWidth); //This is to ensure we intersect the box
+                LineD testIntersection;
+                box.Intersect(ref testLine, out testIntersection);
+                var intersection = testIntersection.To;
+                var projForward = Vector3D.IsZero(logic.ShieldShapeMatrix.Forward) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Forward) / logic.ShieldShapeMatrix.Forward.LengthSquared() * logic.ShieldShapeMatrix.Forward;
+                int closestFaceNum = -1;
+
+                if (projForward.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Forward.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Forward);
+                    var face = dot > 0 ? Session.ShieldSides.Forward : Session.ShieldSides.Backward;
+                    closestFaceNum = (int)face;
                 }
+
+                var projLeft = Vector3D.IsZero(logic.ShieldShapeMatrix.Left) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Left) / logic.ShieldShapeMatrix.Left.LengthSquared() * logic.ShieldShapeMatrix.Left;
+                if (projLeft.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Left.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Left);
+                    var face = dot > 0 ? Session.ShieldSides.Left : Session.ShieldSides.Right;
+                    var lengDiffSqr = projLeft.LengthSquared() - logic.ShieldShapeMatrix.Left.LengthSquared();
+                    var validFace = closestFaceNum == -1 || !MyUtils.IsZero(lengDiffSqr);
+                    if (validFace)
+                        closestFaceNum = (int)face;
+                }
+
+                var projUp = Vector3D.IsZero(logic.ShieldShapeMatrix.Up) ? Vector3D.Zero : intersection.Dot(logic.ShieldShapeMatrix.Up) / logic.ShieldShapeMatrix.Up.LengthSquared() * logic.ShieldShapeMatrix.Up;
+                if (projUp.LengthSquared() >= 0.8 * logic.ShieldShapeMatrix.Up.LengthSquared()) //if within the side thickness
+                {
+                    var dot = intersection.Dot(logic.ShieldShapeMatrix.Up);
+                    var face = dot > 0 ? Session.ShieldSides.Up : Session.ShieldSides.Down;
+                    var lengDiffSqr = projUp.LengthSquared() - logic.ShieldShapeMatrix.Up.LengthSquared();
+                    var validFace = closestFaceNum == -1 || !MyUtils.IsZero(lengDiffSqr);
+
+                    if (validFace)
+                        closestFaceNum = (int)face;
+
+                }
+
+                if (closestFaceNum == -1)
+                {
+                    Log.Line($"no hit face wtf");
+                    closestFaceNum = 0;
+                }
+
+                closestFaceHit = (Session.ShieldSides)closestFaceNum;
             }
 
             internal void ClearDamageTypeInfo()
@@ -312,30 +239,7 @@ namespace DefenseShields
                 ModEnergyDamage = 0;
                 AverageNormDamage = 0;
                 Absorb = 0f;
-            }
 
-            internal void Clear()
-            {
-                ClearDamageTypeInfo();
-
-                
-                var sides = Controller.DsState.State.ShieldSides;
-                var maxSides = sides.Length;
-                for (int i = 0; i < maxSides; i++)
-                {
-                    var sideId = (Session.ShieldSides)i;
-                    var side = sides[(int)sideId];
-
-                    if (Session.Instance.IsServer)
-                    {
-                        side.Online = false;
-                        side.NextOnline = Session.Instance.Tick;
-                    }
-                    side.Charge = 0;
-                    side.Absorb = 0;
-                }
-                SidesOnline = 0;
-                Controller.StateChangeRequest = true;
             }
         }
 

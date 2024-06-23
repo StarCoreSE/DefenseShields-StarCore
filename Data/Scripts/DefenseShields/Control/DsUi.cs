@@ -10,7 +10,6 @@ namespace DefenseShields
     using Sandbox.ModAPI;
     using VRage.ModAPI;
     using VRage.Utils;
-    using Sandbox.Game;
 
     internal static class DsUi
     {
@@ -87,7 +86,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.Rate = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static float GetFit(IMyTerminalBlock block)
@@ -106,7 +105,7 @@ namespace DefenseShields
                 comp.DsSet.Settings.Fit = (int)Math.Round(newValue);
                 comp.FitChanged = true;
                 comp.SettingsUpdated = true;
-                comp.SettingsChangeRequest = true;
+                comp.ClientUiUpdate = true;
             }
         }
 
@@ -123,7 +122,7 @@ namespace DefenseShields
             comp.DsSet.Settings.SphereFit = newValue;
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static long GetPowerScale(IMyTerminalBlock block)
@@ -138,7 +137,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.PowerScale = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetFortify(IMyTerminalBlock block)
@@ -154,7 +153,7 @@ namespace DefenseShields
             comp.DsSet.Settings.FortifyShield = newValue;
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static float GetWidth(IMyTerminalBlock block)
@@ -170,7 +169,7 @@ namespace DefenseShields
             comp.DsSet.Settings.Width = newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
         }
 
@@ -187,7 +186,7 @@ namespace DefenseShields
             comp.DsSet.Settings.Height = newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
         }
 
@@ -204,7 +203,7 @@ namespace DefenseShields
             comp.DsSet.Settings.Depth = newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
         }
 
@@ -222,7 +221,7 @@ namespace DefenseShields
             comp.DsSet.Settings.ShieldOffset.Y = (int)newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
             ((MyCubeBlock)block).UpdateTerminal();
         }
@@ -241,7 +240,7 @@ namespace DefenseShields
             comp.DsSet.Settings.ShieldOffset.X = (int)newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
             ((MyCubeBlock)block).UpdateTerminal();
         }
@@ -260,7 +259,7 @@ namespace DefenseShields
             comp.DsSet.Settings.ShieldOffset.Z = (int)newValue;
             comp.UpdateDimensions = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.LosCheckTick = Session.Instance.Tick + 1800;
             ((MyCubeBlock)block).UpdateTerminal();
         }
@@ -277,7 +276,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.UseBatteries = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetHideActive(IMyTerminalBlock block)
@@ -292,7 +291,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.ActiveInvisible = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetRefreshAnimation(IMyTerminalBlock block)
@@ -307,7 +306,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.RefreshAnimation = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetHitWaveAnimation(IMyTerminalBlock block)
@@ -322,7 +321,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.HitWaveAnimation = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetNoWarningSounds(IMyTerminalBlock block)
@@ -337,7 +336,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.DimShieldHits = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetDimShieldHits(IMyTerminalBlock block)
@@ -352,7 +351,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.NoWarningSounds = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetSendToHud(IMyTerminalBlock block)
@@ -367,31 +366,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.SendToHud = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
-        }
-
-        internal static bool GetAutoManage(IMyTerminalBlock block)
-        {
-            var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            return comp?.DsSet.Settings.AutoManage ?? false;
-        }
-
-        internal static void SetAutoManage(IMyTerminalBlock block, bool newValue)
-        {
-            var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            if (comp == null) return;
-            comp.DsSet.Settings.AutoManage = newValue;
-            comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
-        }
-
-        internal static bool AutoManageEnabled(IMyTerminalBlock block)
-        {
-            var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            if (comp == null)
-                return false;
-
-            return true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetRaiseShield(IMyTerminalBlock block)
@@ -406,7 +381,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.RaiseShield = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static long GetShell(IMyTerminalBlock block)
@@ -423,7 +398,7 @@ namespace DefenseShields
             comp.SelectPassiveShell();
             comp.UpdatePassiveModel();
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static long GetVisible(IMyTerminalBlock block)
@@ -438,7 +413,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.Visible = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static void ListShell(List<MyTerminalControlComboBoxItem> shellList)
@@ -476,7 +451,7 @@ namespace DefenseShields
             if (comp == null) return;
             comp.DsSet.Settings.PowerWatts = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool EnablePowerWatts(IMyTerminalBlock block)
@@ -505,7 +480,7 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
@@ -528,7 +503,7 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
@@ -551,7 +526,7 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
@@ -573,7 +548,7 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
@@ -596,7 +571,7 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
@@ -616,7 +591,7 @@ namespace DefenseShields
         {
             var comp = block?.GameLogic?.GetAs<DefenseShields>();
             if (comp == null) return false;
-            var state = comp.HeatSinkCount >= comp.DsSet.Settings.SinkHeatCount && !comp.DsSet.Settings.AutoManage;
+            var state = comp.HeatSinkCount >= comp.DsSet.Settings.SinkHeatCount;
             return state;
         }
 
@@ -625,11 +600,12 @@ namespace DefenseShields
             var comp = block?.GameLogic?.GetAs<DefenseShields>();
             if (comp != null && comp.HeatSinkCount >= comp.DsSet.Settings.SinkHeatCount && comp.DsState.State.Heat > 0)
             {
-                if (!comp.DsSet.Settings.AutoManage && !Session.Instance.DedicatedServer && comp.DsState.State.MaxHpReductionScaler < 0.94)
+                if (!Session.Instance.DedicatedServer && comp.DsState.State.MaxHpReductionScaler < 0.9)
                 {
                     comp.SettingsUpdated = true;
-                    comp.SettingsChangeRequest = true;
+                    comp.ClientUiUpdate = true;
                     comp.DsSet.Settings.SinkHeatCount++;
+                    comp.LastHeatSinkTick = Session.Instance.Tick;
                 }
             }
         }
@@ -646,18 +622,16 @@ namespace DefenseShields
 
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
             comp.StartRedirectTimer();
         }
 
 
         public static bool NewSideState(DefenseShields ds, Session.ShieldSides side, bool redirect, int currentState)
         {
-            if (Session.Instance.DedicatedServer || ds.DsSet.Settings.AutoManage) {
-                if (ds.DsSet.Settings.AutoManage && Session.Instance.Settings.ClientConfig.Notices)
-                    Session.Instance.SendNotice("Cannot shunt when Shield is in Automatic Managemnet");
+
+            if (Session.Instance.DedicatedServer)
                 return false;
-            }
 
             int newState;
             var enableValue = Session.Instance.SideControlMap[side];
@@ -731,20 +705,14 @@ namespace DefenseShields
                 comp.DsSet.Settings.SideShunting = newValue;
                 comp.FitChanged = true;
                 comp.SettingsUpdated = true;
-                comp.SettingsChangeRequest = true;
+                comp.ClientUiUpdate = true;
             }
-        }
-
-        internal static bool SetSideShuntingVis(IMyTerminalBlock block)
-        {
-            var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            return comp != null && !comp.DsSet.Settings.AutoManage;
         }
 
         internal static bool GetShowShunting(IMyTerminalBlock block)
         {
             var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            return comp != null && comp.DsSet.Settings.ShowRedirect;
+            return comp?.DsSet.Settings.ShowRedirect ?? false;
         }
 
         internal static void SetShowShunting(IMyTerminalBlock block, bool newValue)
@@ -755,7 +723,7 @@ namespace DefenseShields
             comp.DsSet.Settings.ShowRedirect = newValue;
             comp.FitChanged = true;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
         #endregion
     }

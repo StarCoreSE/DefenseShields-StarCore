@@ -32,22 +32,28 @@ namespace DefenseShields
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
-            base.Init(objectBuilder);
-            StorageSetup();
+            try
+            {
+                base.Init(objectBuilder);
+                StorageSetup();
+            }
+            catch (Exception ex) { Log.Line($"Exception in EntityInit: {ex}"); }
         }
 
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
-
-            if (!_bInit) BeforeInit();
-            else if (_bCount < SyncCount * _bTime)
+            try
             {
-                NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
-                if (ShieldComp?.DefenseShields?.MyGrid == MyGrid) _bCount++;
+                if (!_bInit) BeforeInit();
+                else if (_bCount < SyncCount * _bTime)
+                {
+                    NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+                    if (ShieldComp?.DefenseShields?.MyGrid == MyGrid) _bCount++;
+                }
+                else _readyToSync = true;
             }
-            else _readyToSync = true;
-
+            catch (Exception ex) { Log.Line($"Exception in UpdateOnceBeforeFrame: {ex}"); }
         }
 
         private void BeforeInit()
@@ -75,12 +81,14 @@ namespace DefenseShields
 
         public override void OnAddedToScene()
         {
-
-            MyGrid = (MyCubeGrid)Enhancer.CubeGrid;
-            MyCube = Enhancer as MyCubeBlock;
-            RegisterEvents();
-            if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: - EnhancerId [{Enhancer.EntityId}]");
-
+            try
+            {
+                MyGrid = (MyCubeGrid)Enhancer.CubeGrid;
+                MyCube = Enhancer as MyCubeBlock;
+                RegisterEvents();
+                if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: - EnhancerId [{Enhancer.EntityId}]");
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnAddedToScene: {ex}"); }
         }
 
         public override void UpdateBeforeSimulation()
@@ -123,40 +131,53 @@ namespace DefenseShields
 
         public override void OnRemovedFromScene()
         {
-            if (Session.Instance.Enhancers.Contains(this)) Session.Instance.Enhancers.Remove(this);
-            if (ShieldComp?.Enhancer == this)
+            try
             {
-                ShieldComp.Enhancer = null;
+                if (Session.Instance.Enhancers.Contains(this)) Session.Instance.Enhancers.Remove(this);
+                if (ShieldComp?.Enhancer == this)
+                {
+                    ShieldComp.Enhancer = null;
+                }
+                RegisterEvents(false);
+
             }
-            RegisterEvents(false);
+            catch (Exception ex) { Log.Line($"Exception in OnRemovedFromScene: {ex}"); }
         }
 
         public override void Close()
         {
-            base.Close();
-            if (Session.Instance.Enhancers.Contains(this)) Session.Instance.Enhancers.Remove(this);
-            if (ShieldComp?.Enhancer == this)
+            try
             {
-                ShieldComp.Enhancer = null;
-            }
-            ShieldComp = null;
-
-            if (Sink != null)
-            {
-                ResourceInfo = new MyResourceSinkInfo
+                base.Close();
+                if (Session.Instance.Enhancers.Contains(this)) Session.Instance.Enhancers.Remove(this);
+                if (ShieldComp?.Enhancer == this)
                 {
-                    ResourceTypeId = _gId,
-                    MaxRequiredInput = 0f,
-                    RequiredInputFunc = null
-                };
-                Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
-                Sink = null;
+                    ShieldComp.Enhancer = null;
+                }
+                ShieldComp = null;
+
+                if (Sink != null)
+                {
+                    ResourceInfo = new MyResourceSinkInfo
+                    {
+                        ResourceTypeId = _gId,
+                        MaxRequiredInput = 0f,
+                        RequiredInputFunc = null
+                    };
+                    Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
+                    Sink = null;
+                }
             }
+            catch (Exception ex) { Log.Line($"Exception in Close: {ex}"); }
         }
 
         public override void MarkForClose()
         {
-            base.MarkForClose();
+            try
+            {
+                base.MarkForClose();
+            }
+            catch (Exception ex) { Log.Line($"Exception in MarkForClose: {ex}"); }
         }
 
         public override void OnBeforeRemovedFromContainer()

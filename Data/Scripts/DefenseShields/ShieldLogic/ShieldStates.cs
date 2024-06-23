@@ -2,53 +2,11 @@
 namespace DefenseShields
 {
     using Support;
+    using System;
     using VRageMath;
 
     public partial class DefenseShields
     {
-
-        private void ShieldRun()
-        {
-
-            if (!EntityAlive() || !_isServer && !ClientInitPacket || Session.Instance.ShutDown) 
-                return;
-
-            if (!_isDedicated && _clientMessageCount < DsState.State.MessageCount)
-                BroadcastMessage();
-
-            var shield = ShieldOn();
-            if (shield != State.Active)
-            {
-                if (NotFailed)
-                {
-                    if (Session.Enforced.Debug >= 2) Log.Line($"FailState: {shield} - ShieldId [{Shield.EntityId}]");
-                    var up = shield != State.Lowered;
-                    var awake = shield != State.Sleep;
-                    var clear = up && awake;
-                    OfflineShield(clear, up);
-                }
-                else if (_isServer && _sendMessage)
-                    StateChangeRequest = true;
-
-                return;
-            }
-
-            if (!_isServer) 
-                return;
-
-            if (!DsState.State.Online && DsState.State.ActiveEmitterId != 0 && _tick600)
-            {
-                StateChangeRequest = true;
-                return;
-            }
-
-            if (_comingOnline) 
-                ComingOnlineSetup();
-
-            if (_mpActive &&  _tick180)
-                StateChangeRequest = true;
-        }
-
         private bool EntityAlive()
         {
             _tick = Session.Instance.Tick;
@@ -67,10 +25,9 @@ namespace DefenseShields
             var wait = _isServer && !_tick60 && DsState.State.Suspended;
 
             MyGrid = MyCube.CubeGrid;
-            if (MyGrid?.Physics == null) 
-                return false;
+            if (MyGrid?.Physics == null) return false;
 
-            if (_resetEntity || ShieldComp == null) 
+            if (_resetEntity) 
                 ResetEntity();
 
             if (!_firstSync && _readyToSync) 
@@ -79,8 +36,7 @@ namespace DefenseShields
             if (!_isDedicated && _count == 29 && InControlPanel && InThisTerminal) 
                 TerminalRefresh();
 
-            if (wait || (!_allInited && !PostInit())) 
-                return false;
+            if (wait || (!_allInited && !PostInit())) return false;
 
             if (_tick1800 && Session.Enforced.Debug > 0) 
                 Debug();
@@ -102,27 +58,20 @@ namespace DefenseShields
             if (_isServer && (_updateCap || _tick >= _delayedCapTick ))
                 ComputeCap();
 
-
-            if (SettingsChangeRequest || SettingsUpdated) 
+            if (ClientUiUpdate || SettingsUpdated) 
                 UpdateSettings();
 
             if (_mpActive)
             {
                 if (_isServer)
                 {
-                    if (_tick - 1 > _lastSendDamageTick) 
-                        ShieldHitReset(ShieldHit.Amount > 0 && ShieldHit.HitPos != Vector3D.Zero);
-
-                    if (ShieldHitsToSend.Count != 0) 
-                        SendShieldHits();
-
-                    if (!_isDedicated && ShieldHits.Count != 0) 
-                        AbsorbClientShieldHits();
+                    if (_tick - 1 > _lastSendDamageTick) ShieldHitReset(ShieldHit.Amount > 0 && ShieldHit.HitPos != Vector3D.Zero);
+                    if (ShieldHitsToSend.Count != 0) SendShieldHits();
+                    if (!_isDedicated && ShieldHits.Count != 0) AbsorbClientShieldHits();
                 }
                 else
                 {
-                    if (ShieldHits.Count != 0) 
-                        AbsorbClientShieldHits();
+                    if (ShieldHits.Count != 0) AbsorbClientShieldHits();
 
                     if (DsSet.Settings.SinkHeatCount > HeatSinkCount && Session.Instance.Tick == ClientHeatSinkResetTick)
                         HeatSinkCount = DsSet.Settings.SinkHeatCount;
@@ -138,10 +87,7 @@ namespace DefenseShields
         {
             if (_isServer)
             {
-                if (Suspended()) {
-                    _lastFieldCheckState = false;
-                    return State.Init;
-                }
+                if (Suspended()) return State.Init;
                 if (ShieldSleeping()) return State.Sleep;
                 if (ShieldWaking()) return State.Wake;
                 
@@ -153,47 +99,32 @@ namespace DefenseShields
                 GetModulationInfo();
                 GetEnhancernInfo();
 
-                if (_tick >= LosCheckTick) 
-                    LosCheck();
-
-                if (ShieldComp.EmitterEvent) 
-                    EmitterEventDetected();
-
-                if (_shapeEvent || FitChanged) 
-                    CheckExtents();
-
-                if (_adjustShape) 
-                    AdjustShape(true);
-
+                if (_tick >= LosCheckTick) LosCheck();
+                if (ShieldComp.EmitterEvent) EmitterEventDetected();
+                if (_shapeEvent || FitChanged) CheckExtents();
+                if (_adjustShape) AdjustShape(true);
                 if (!ShieldServerStatusUp())
                 {
-                    if (DsState.State.Lowered) 
-                        return State.Lowered;
-
-                    if (_overLoadLoop > -1 || _reModulationLoop > -1) 
-                        FailureDurations();
-
+                    if (DsState.State.Lowered) return State.Lowered;
+                    if (_overLoadLoop > -1 || _reModulationLoop > -1 || _empOverLoadLoop > -1) FailureDurations();
                     return State.Failure;
                 }
             }
             else
             {
-                if (ClientOfflineStates()) 
-                    return State.Failure;
+                if (ClientOfflineStates()) return State.Failure;
 
                 UpdateSides();
 
-                if (UpdateDimensions) 
-                    RefreshDimensions();
+                if (UpdateDimensions) RefreshDimensions();
 
-                if (!GridIsMobile && !IncreaseO2ByFPercent.Equals(_ellipsoidOxyProvider.O2Level))
-                    _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, IncreaseO2ByFPercent);
+                if (!GridIsMobile && !DsState.State.IncreaseO2ByFPercent.Equals(_ellipsoidOxyProvider.O2Level))
+                    _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, DsState.State.IncreaseO2ByFPercent);
 
                 PowerOnline();
                 StepDamageState();
 
-                if (!ClientShieldShieldRaised()) 
-                    return State.Lowered;
+                if (!ClientShieldShieldRaised()) return State.Lowered;
             }
 
             return State.Active;
@@ -201,16 +132,14 @@ namespace DefenseShields
 
         private bool ShieldServerStatusUp()
         {
-            var notFailing = _overLoadLoop == -1 && _reModulationLoop == -1;
+            var notFailing = _overLoadLoop == -1 && _empOverLoadLoop == -1 && _reModulationLoop == -1;
             ShieldActive = ShieldRaised() && DsState.State.EmitterLos && notFailing && PowerOnline();
             StepDamageState();
-            if (!ShieldActive) {
-                _lastFieldCheckState = false;
+            if (!ShieldActive)
                 return false;
-            }
 
             var prevOnline = DsState.State.Online;
-            if (!prevOnline  && FieldShapeBlocked())
+            if (!prevOnline && GridIsMobile && FieldShapeBlocked())
                 return false;
 
             _comingOnline = !prevOnline || _firstLoop;
@@ -219,21 +148,8 @@ namespace DefenseShields
 
             if (!GridIsMobile && (_comingOnline || ShieldComp.O2Updated))
             {
-                _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, IncreaseO2ByFPercent);
+                _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, DsState.State.IncreaseO2ByFPercent);
                 ShieldComp.O2Updated = false;
-            }
-
-            if (AutoManage != DsSet.Settings.AutoManage)
-            {
-               // AutoManage = DsSet.Settings.AutoManage;
-               // if (_reModulationLoop == -1)
-               //     _reModulationLoop = 0;
-
-
-                if (DsSet.Settings.SideShunting) {
-                    DsSet.Settings.SideShunting = false;
-                    SettingsChangeRequest = true;
-                }
             }
 
             return true;
@@ -241,9 +157,7 @@ namespace DefenseShields
 
         private void ComingOnlineSetup()
         {
-            if (!_isDedicated) 
-                ShellVisibility();
-
+            if (!_isDedicated) ShellVisibility();
             ShieldEnt.Render.Visible = true;
             _updateRender = true;
             _comingOnline = false;
@@ -257,7 +171,7 @@ namespace DefenseShields
             {
                 _updateCap = true;
                 CleanWebEnts();
-                StateChangeRequest = true;
+                ShieldChangeState();
                 if (Session.Enforced.Debug == 3) Log.Line($"StateUpdate: ComingOnlineSetup - ShieldId [{Shield.EntityId}]");
             }
             else
@@ -274,12 +188,8 @@ namespace DefenseShields
         {
             DefaultShieldState(clear, keepCharge, resetShape);
 
-            if (_isServer)
-            {
-                StateChangeRequest = true;
-            }
-            else 
-                TerminalRefresh();
+            if (_isServer) ShieldChangeState();
+            else TerminalRefresh();
 
             if (!_isDedicated) ShellVisibility(true);
 
@@ -309,7 +219,7 @@ namespace DefenseShields
 
             if (_isServer)
             {
-                IncreaseO2ByFPercent = 0f;
+                DsState.State.IncreaseO2ByFPercent = 0f;
                 if (clearHeat)
                 {
                     DsState.State.Heat = 0;
@@ -345,14 +255,12 @@ namespace DefenseShields
                 {
                     if (!GridIsMobile) _ellipsoidOxyProvider.UpdateOxygenProvider(MatrixD.Zero, 0);
 
-                    IncreaseO2ByFPercent = 0f;
+                    DsState.State.IncreaseO2ByFPercent = 0f;
                     if (!_isDedicated) 
                         ShellVisibility(true);
                     DsState.State.Lowered = true;
                     if (_isServer)
-                    {
-                        StateChangeRequest = true;
-                    }
+                        ShieldChangeState();
                 }
                 PowerOnline();
                 return false;
@@ -361,7 +269,7 @@ namespace DefenseShields
             {
                 if (!GridIsMobile)
                 {
-                    _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, IncreaseO2ByFPercent);
+                    _ellipsoidOxyProvider.UpdateOxygenProvider(DetectMatrixOutsideInv, DsState.State.IncreaseO2ByFPercent);
                     ShieldComp.O2Updated = false;
                 }
                 DsState.State.Lowered = false;
@@ -371,9 +279,7 @@ namespace DefenseShields
                 if (!_isDedicated) 
                     ShellVisibility();
                 if (_isServer)
-                {
-                    StateChangeRequest = true;
-                }
+                    ShieldChangeState();
             }
 
             return true;
@@ -387,14 +293,13 @@ namespace DefenseShields
                 {
                     if (!GridIsMobile) _ellipsoidOxyProvider.UpdateOxygenProvider(MatrixD.Zero, 0);
 
-                    IncreaseO2ByFPercent = 0f;
+                    DsState.State.IncreaseO2ByFPercent = 0f;
                     if (!_isDedicated) ShellVisibility(true);
                     DsState.State.Sleeping = true;
                     TerminalRefresh(false);
                     if (Session.Enforced.Debug >= 3) Log.Line($"Sleep: controller detected sleeping emitter, shield mode: {ShieldMode} - ShieldId [{Shield.EntityId}]");
                 }
                 DsState.State.Sleeping = true;
-                _lastFieldCheckState = false;
                 return true;
             }
             if (DsState.State.Sleeping)
@@ -578,9 +483,8 @@ namespace DefenseShields
                     if (newSettings.Visible != DsSet.Settings.Visible) 
                         _clientAltered = true;
                 }
-
                 var newShape = newSettings.Fit != DsSet.Settings.Fit || newSettings.FortifyShield != DsSet.Settings.FortifyShield ;
-
+                
                 DsSet.Settings = newSettings;
                 SettingsUpdated = true;
                 if (newShape) FitChanged = true;
@@ -625,21 +529,19 @@ namespace DefenseShields
             }
             else if (_tick % 34 == 0)
             {
-                if (SettingsChangeRequest)
+                if (ClientUiUpdate)
                 {
-                    SettingsChangeRequest = false;
+                    ClientUiUpdate = false;
                     DsSet.NetworkUpdate();
                 }
             }
         }
 
-
         private void ShieldChangeState()
         {
             if (_isServer && _sendMessage)
                 ++DsState.State.MessageCount;
-
-            StateChangeRequest = false;
+            
             _sendMessage = false;
             if (Session.Instance.MpActive && Session.Instance.IsServer)
             {

@@ -31,34 +31,42 @@ namespace DefenseShields
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
-
-            base.Init(objectBuilder);
-            StorageSetup();
-
+            try
+            {
+                base.Init(objectBuilder);
+                StorageSetup();
+            }
+            catch (Exception ex) { Log.Line($"Exception in EntityInit: {ex}"); }
         }
 
         public override void OnAddedToScene()
         {
-            MyGrid = (MyCubeGrid)Modulator.CubeGrid;
-            MyCube = Modulator as MyCubeBlock;
-            RegisterEvents();
-            if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: - ModulatorId [{Modulator.EntityId}]");
-            if (!MainInit) return;
-            ResetComp();
+            try
+            {
+                MyGrid = (MyCubeGrid)Modulator.CubeGrid;
+                MyCube = Modulator as MyCubeBlock;
+                RegisterEvents();
+                if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: - ModulatorId [{Modulator.EntityId}]");
+                if (!MainInit) return;
+                ResetComp();
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnAddedToScene: {ex}"); }
         }
 
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
-
-            if (!_bInit) BeforeInit();
-            else if (_bCount < SyncCount * _bTime)
+            try
             {
-                NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
-                if (ModulatorComp?.Modulator?.MyGrid == MyGrid) _bCount++;
+                if (!_bInit) BeforeInit();
+                else if (_bCount < SyncCount * _bTime)
+                {
+                    NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+                    if (ModulatorComp?.Modulator?.MyGrid == MyGrid) _bCount++;
+                }
+                else _readyToSync = true;
             }
-            else _readyToSync = true;
-
+            catch (Exception ex) { Log.Line($"Exception in UpdateOnceBeforeFrame: {ex}"); }
         }
 
         public override void UpdateBeforeSimulation()
@@ -150,18 +158,22 @@ namespace DefenseShields
 
         public override void OnRemovedFromScene()
         {
-            if (Session.Instance.Modulators.Contains(this)) Session.Instance.Modulators.Remove(this);
-            if (ShieldComp?.Modulator == this)
+            try
             {
-                ShieldComp.Modulator = null;
-            }
+                if (Session.Instance.Modulators.Contains(this)) Session.Instance.Modulators.Remove(this);
+                if (ShieldComp?.Modulator == this)
+                {
+                    ShieldComp.Modulator = null;
+                }
 
-            if (ModulatorComp?.Modulator == this)
-            {
-                ModulatorComp.Modulator = null;
-                ModulatorComp = null;
+                if (ModulatorComp?.Modulator == this)
+                {
+                    ModulatorComp.Modulator = null;
+                    ModulatorComp = null;
+                }
+                RegisterEvents(false);
             }
-            RegisterEvents(false);
+            catch (Exception ex) { Log.Line($"Exception in OnRemovedFromScene: {ex}"); }
         }
 
         public override void OnBeforeRemovedFromContainer()
@@ -171,36 +183,43 @@ namespace DefenseShields
 
         public override void Close()
         {
-            if (Session.Instance.Modulators.Contains(this)) Session.Instance.Modulators.Remove(this);
-            if (ShieldComp?.Modulator == this)
+            try
             {
-                ShieldComp.Modulator = null;
-            }
-            ShieldComp = null;
-
-            if (ModulatorComp?.Modulator == this)
-            {
-                ModulatorComp.Modulator = null;
-            }
-            ModulatorComp = null;
-
-            if (Sink != null)
-            {
-                ResourceInfo = new MyResourceSinkInfo
+                if (Session.Instance.Modulators.Contains(this)) Session.Instance.Modulators.Remove(this);
+                if (ShieldComp?.Modulator == this)
                 {
-                    ResourceTypeId = _gId,
-                    MaxRequiredInput = 0f,
-                    RequiredInputFunc = null
-                };
-                Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
-                Sink = null;
-            }
+                    ShieldComp.Modulator = null;
+                }
+                ShieldComp = null;
 
+                if (ModulatorComp?.Modulator == this)
+                {
+                    ModulatorComp.Modulator = null;
+                }
+                ModulatorComp = null;
+
+                if (Sink != null)
+                {
+                    ResourceInfo = new MyResourceSinkInfo
+                    {
+                        ResourceTypeId = _gId,
+                        MaxRequiredInput = 0f,
+                        RequiredInputFunc = null
+                    };
+                    Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
+                    Sink = null;
+                }
+            }
+            catch (Exception ex) { Log.Line($"Exception in Close: {ex}"); }
             base.Close();
         }
 
         public override void MarkForClose()
         {
+            try
+            {
+            }
+            catch (Exception ex) { Log.Line($"Exception in MarkForClose: {ex}"); }
             base.MarkForClose();
         }
 

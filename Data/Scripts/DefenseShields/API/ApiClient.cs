@@ -46,7 +46,6 @@ namespace DefenseShields
         private Func<IMyEntity, IMyTerminalBlock> _getShieldBlock;
         private Func<IMyEntity, bool, IMyTerminalBlock> _matchEntToShieldFast;
         private Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>>?> _matchEntToShieldFastExt;
-        private Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>?> _matchEntToShieldFastDetails;
         private Func<IMyTerminalBlock, bool> _isShieldBlock;
         private Func<Vector3D, IMyTerminalBlock> _getClosestShield;
         private Func<IMyTerminalBlock, Vector3D, double> _getDistanceToShield;
@@ -146,7 +145,6 @@ namespace DefenseShields
             _getShieldBlock = (Func<IMyEntity, IMyTerminalBlock>)delegates["GetShieldBlock"];
             _matchEntToShieldFast = (Func<IMyEntity, bool, IMyTerminalBlock>)delegates["MatchEntToShieldFast"];
             _matchEntToShieldFastExt = (Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>>?>)delegates["MatchEntToShieldFastExt"];
-            _matchEntToShieldFastDetails = (Func<MyEntity, bool, MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>?>)delegates["MatchEntToShieldFastDetails"];
             _isShieldBlock = (Func<IMyTerminalBlock, bool>)delegates["IsShieldBlock"];
             _getClosestShield = (Func<Vector3D, IMyTerminalBlock>)delegates["GetClosestShield"];
             _getDistanceToShield = (Func<IMyTerminalBlock, Vector3D, double>)delegates["GetDistanceToShield"];
@@ -201,7 +199,6 @@ namespace DefenseShields
         public IMyTerminalBlock GetShieldBlock(IMyEntity entity) => _getShieldBlock?.Invoke(entity) ?? null;
         public IMyTerminalBlock MatchEntToShieldFast(IMyEntity entity, bool onlyIfOnline) => _matchEntToShieldFast?.Invoke(entity, onlyIfOnline) ?? null;
         public MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>>? MatchEntToShieldFastExt(MyEntity entity, bool onlyIfOnline) => _matchEntToShieldFastExt?.Invoke(entity, onlyIfOnline) ?? null;
-        public MyTuple<IMyTerminalBlock, MyTuple<bool, bool, float, float, float, int>, MyTuple<MatrixD, MatrixD>, MyTuple<bool, bool, float, float>>? MatchEntToShieldFastDetails(MyEntity entity, bool onlyIfOnline) => _matchEntToShieldFastDetails?.Invoke(entity, onlyIfOnline) ?? null;
         public bool IsShieldBlock(IMyTerminalBlock block) => _isShieldBlock?.Invoke(block) ?? false;
         public IMyTerminalBlock GetClosestShield(Vector3D pos) => _getClosestShield?.Invoke(pos) ?? null;
         public double GetDistanceToShield(IMyTerminalBlock block, Vector3D pos) => _getDistanceToShield?.Invoke(block, pos) ?? -1;

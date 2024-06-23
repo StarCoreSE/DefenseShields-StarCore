@@ -232,7 +232,7 @@ namespace DefenseShields
                             var character = player.Character;
                             if (character == null) continue;
 
-                            if (Vector3D.DistanceSquared(character.PositionComp.WorldMatrixRef.Translation, s.WorldEllipsoidCenter) < SyncDistSqr)
+                            if (Vector3D.DistanceSquared(character.PositionComp.WorldMatrixRef.Translation, s.DetectionCenter) < SyncDistSqr)
                             {
                                 foundPlayer = true;
                                 break;
@@ -256,7 +256,7 @@ namespace DefenseShields
                             {
                                 if (CustomCollision.FutureIntersect(s, ent, s.DetectMatrixOutside, s.DetectMatrixOutsideInv))
                                 {
-                                    if (Enforced.Debug >= 2) Log.Line($"[Future Intersecting Meteor] distance from shieldCenter: {Vector3D.Distance(s.WorldEllipsoidCenter, ent.WorldMatrix.Translation)} - waking:");
+                                    if (Enforced.Debug >= 2) Log.Line($"[Future Intersecting Meteor] distance from shieldCenter: {Vector3D.Distance(s.DetectionCenter, ent.WorldMatrix.Translation)} - waking:");
                                     newMover = true;
                                     break;
                                 }

@@ -23,31 +23,31 @@ namespace DefenseShields
                 float modEnergyRatio;
                 float modKineticRatio;
                 ComputeModBonus(ShieldComp.Modulator, out modEnergyRatio, out modKineticRatio);
-                if (!DsState.State.ModulateEnergy.Equals(modKineticRatio) || !DsState.State.ModulateKinetic.Equals(modEnergyRatio) || !EwarProtection.Equals(ShieldComp.Modulator.ModSet.Settings.EmpEnabled) || !DsState.State.ReInforce.Equals(ShieldComp.Modulator.ModSet.Settings.ReInforceEnabled)) update = true;
+                if (!DsState.State.ModulateEnergy.Equals(modKineticRatio) || !DsState.State.ModulateKinetic.Equals(modEnergyRatio) || !DsState.State.EwarProtection.Equals(ShieldComp.Modulator.ModSet.Settings.EmpEnabled) || !DsState.State.ReInforce.Equals(ShieldComp.Modulator.ModSet.Settings.ReInforceEnabled)) update = true;
                 DsState.State.ModulateEnergy = modKineticRatio;
                 DsState.State.ModulateKinetic = modEnergyRatio;
                 if (DsState.State.Enhancer)
                 {
-                    EwarProtection = ShieldComp.Modulator.ModSet.Settings.EmpEnabled;
+                    DsState.State.EwarProtection = ShieldComp.Modulator.ModSet.Settings.EmpEnabled;
                     DsState.State.ReInforce = ShieldComp.Modulator.ModSet.Settings.ReInforceEnabled;
                 }
 
                 if (_isServer && update && Session.Instance.Tick - LastModulateChangeTick >= 20)
                 {
                     LastModulateChangeTick = Session.Instance.Tick;
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                 }
             }
             else if (_tick - InitTick > 30)
             {
-                if (!DsState.State.ModulateEnergy.Equals(1f) || !DsState.State.ModulateKinetic.Equals(1f) || EwarProtection || DsState.State.ReInforce) update = true;
+                if (!DsState.State.ModulateEnergy.Equals(1f) || !DsState.State.ModulateKinetic.Equals(1f) || DsState.State.EwarProtection || DsState.State.ReInforce) update = true;
                 DsState.State.ModulateEnergy = 1f;
                 DsState.State.ModulateKinetic = 1f;
-                EwarProtection = false;
+                DsState.State.EwarProtection = false;
                 DsState.State.ReInforce = false;
                 if (_isServer && update)
                 {
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                 }
             }
         }
@@ -67,13 +67,6 @@ namespace DefenseShields
             {
                 ChargeMgr.NormalAverage.Clear();
                 AggregateModulation = comp.ModSet.Settings.AggregateModulation;
-            }
-
-            if (DsSet.Settings.AutoManage)
-            {
-                modEnergyRatio = 1;
-                modKineticRatio = 1;
-                return;
             }
 
             if (!comp.ModSet.Settings.AggregateModulation) {
@@ -124,11 +117,6 @@ namespace DefenseShields
         {
             if (ShieldComp.Modulator != null && ShieldComp.Modulator.ModState.State.Online) {
 
-                if (DsSet.Settings.AutoManage) {
-                    if (Session.Instance.Settings.ClientConfig.Notices)
-                        Session.Instance.SendNotice($"Cannot change modulation with Automatic Management enabled");
-                    return;
-                }
                 if (Session.Instance.UiInput.KineticReleased)
                     Session.Instance.ActionAddDamageMod(ShieldComp.Modulator.Modulator);
                 else if (Session.Instance.UiInput.EnergyReleased)
@@ -150,7 +138,7 @@ namespace DefenseShields
                 
                 if (update) {
                     UpdateDimensions = true;
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                 }
             }
             else if (_tick - InitTick > 30)
@@ -163,7 +151,7 @@ namespace DefenseShields
                 
                 if (update) {
                     UpdateDimensions = true;
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                 }
             }
         }
@@ -182,6 +170,15 @@ namespace DefenseShields
             {
                 MyCube.UpdateTerminal();
             }
+        }
+
+        public BoundingBoxD GetMechnicalGroupAabb()
+        {
+            BoundingBoxD worldAabb = new BoundingBoxD();
+            foreach (var sub in ShieldComp.SubGrids.Keys)
+                worldAabb.Include(sub.PositionComp.WorldAABB);
+
+            return worldAabb;
         }
 
         private void UpdateSides()
@@ -278,30 +275,6 @@ namespace DefenseShields
         internal int ShuntedSideCount()
         {
             return Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
-        }
-
-        private double GetPenChance()
-        {
-            var shuntedFaces = ShuntedSideCount();
-            var reinforcedPercent = DsSet.Settings.SideShunting && shuntedFaces > 0 ? DsState.State.ShieldPercent + (shuntedFaces * 8) : DsState.State.ShieldPercent;
-            var heatedEnforcedPercent = reinforcedPercent / (1 + (DsState.State.Heat * 0.005));
-            var penChance = 0f;
-            var penStart = DsSet.Settings.AutoManage ? 40f : 20f;
-            var penStartThreshold = 100f - penStart;
-
-            if (heatedEnforcedPercent < penStartThreshold)
-            {
-                double x = MathHelperD.Clamp(heatedEnforcedPercent + penStart, 0, 100);
-                double a = 0.0001;
-                double b = -0.02;
-                double c = 1.0;
-
-                penChance = (float)((a * Math.Pow(x, 2)) + (b * x) + c);
-            }
-
-            var roundedPenChance = Math.Round(penChance * 100, 3);
-            var reportedPenChance = roundedPenChance == 0 && penChance != 0 ? 0.001 : roundedPenChance;
-            return reportedPenChance;
         }
 
         public void UpdateMapping()
@@ -485,6 +458,7 @@ namespace DefenseShields
                 }
             }
             _lastSendDamageTick = uint.MaxValue;
+            _forceBufferSync = true;
             ShieldHit.AttackerId = 0;
             ShieldHit.Amount = 0;
             ShieldHit.DamageType = string.Empty;

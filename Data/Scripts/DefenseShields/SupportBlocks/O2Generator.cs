@@ -403,18 +403,18 @@
         {
             var sc = ShieldComp;
             var shieldFullVol = sc.ShieldVolume;
-            var startingO2Fpercent = sc.DefaultO2 + sc.DefenseShields.IncreaseO2ByFPercent;
+            var startingO2Fpercent = sc.DefaultO2 + sc.DefenseShields.DsState.State.IncreaseO2ByFPercent;
 
             if (shieldFullVol < _oldShieldVol)
             {
                 var ratio = _oldShieldVol / shieldFullVol;
                 if (startingO2Fpercent * ratio > 1) startingO2Fpercent = 1d;
-                else startingO2Fpercent *= ratio;
+                else startingO2Fpercent = startingO2Fpercent * ratio;
             }
             else if (shieldFullVol > _oldShieldVol)
             {
                 var ratio = _oldShieldVol / shieldFullVol;
-                startingO2Fpercent *= ratio;
+                startingO2Fpercent = startingO2Fpercent * ratio;
             }
             _oldShieldVol = shieldFullVol;
 
@@ -441,9 +441,9 @@
             var shieldVolPercentFull = _shieldVolFilled * 100.0;
             var fPercentToAddToDefaultO2Level = (shieldVolPercentFull / shieldFullVol * 0.01) - sc.DefaultO2;
 
-            sc.DefenseShields.IncreaseO2ByFPercent = fPercentToAddToDefaultO2Level;
+            sc.DefenseShields.DsState.State.IncreaseO2ByFPercent = fPercentToAddToDefaultO2Level;
             sc.O2Updated = true;
-            if (Session.Enforced.Debug == 3) Log.Line($"default:{ShieldComp.DefaultO2} - Filled/(Max):{O2State.State.VolFilled}/({shieldFullVol}) - ShieldO2Level:{sc.DefenseShields.IncreaseO2ByFPercent} - O2Before:{MyAPIGateway.Session.OxygenProviderSystem.GetOxygenInPoint(MyAPIGateway.Session.Player.GetPosition())}");
+            if (Session.Enforced.Debug == 3) Log.Line($"default:{ShieldComp.DefaultO2} - Filled/(Max):{O2State.State.VolFilled}/({shieldFullVol}) - ShieldO2Level:{sc.DefenseShields.DsState.State.IncreaseO2ByFPercent} - O2Before:{MyAPIGateway.Session.OxygenProviderSystem.GetOxygenInPoint(MyAPIGateway.Session.Player.GetPosition())}");
         }
 
         private void TerminalRefresh()
@@ -570,7 +570,8 @@
                 return;
             }
 
-            var o2Level = ShieldComp.DefenseShields.IncreaseO2ByFPercent + ShieldComp.DefaultO2;
+            var conState = ShieldComp.DefenseShields.DsState.State;
+            var o2Level = conState.IncreaseO2ByFPercent + ShieldComp.DefaultO2;
             var o2Change = !o2State.VolFilled.Equals(_shieldVolFilled) || !o2State.DefaultO2.Equals(ShieldComp.DefaultO2) || !o2State.ShieldVolume.Equals(ShieldComp.ShieldVolume) || !o2State.O2Level.Equals(o2Level);
             if (!onState && turnOn)
             {

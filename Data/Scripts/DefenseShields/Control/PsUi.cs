@@ -42,7 +42,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.UseBatteries = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetHideActive(IMyTerminalBlock block)
@@ -57,7 +57,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.ActiveInvisible = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetRefreshAnimation(IMyTerminalBlock block)
@@ -72,7 +72,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.RefreshAnimation = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetHitWaveAnimation(IMyTerminalBlock block)
@@ -87,7 +87,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.HitWaveAnimation = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetSendToHud(IMyTerminalBlock block)
@@ -102,7 +102,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.SendToHud = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
 
         internal static bool GetRaiseShield(IMyTerminalBlock block)
@@ -117,7 +117,7 @@
             if (comp == null) return;
             comp.DsSet.Settings.RaiseShield = newValue;
             comp.SettingsUpdated = true;
-            comp.SettingsChangeRequest = true;
+            comp.ClientUiUpdate = true;
         }
         #endregion
     }

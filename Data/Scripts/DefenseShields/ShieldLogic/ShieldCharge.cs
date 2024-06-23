@@ -5,7 +5,7 @@ using Sandbox.Game.Entities;
 using VRage;
 using VRage.Collections;
 using VRage.Utils;
-using Sandbox.ModAPI;
+using static VRage.Game.MyObjectBuilder_BehaviorTreeDecoratorNode;
 
 namespace DefenseShields
 {
@@ -24,9 +24,9 @@ namespace DefenseShields
             if (_isServer && _shieldConsumptionRate.Equals(0f) && DsState.State.Charge.Equals(0.01f))
                 return false;
 
-            _power = ShieldMaxChargeRate > 0 ? _shieldConsumptionRate + _shieldMaintaintPower : 0f;
+            _power = _shieldMaxChargeRate > 0 ? _shieldConsumptionRate + _shieldMaintaintPower : 0f;
 
-            if (_power < ShieldCurrentPower && (_power - ShieldMaxChargeRate) >= 0.0001f) 
+            if (_power < ShieldCurrentPower && (_power - _shieldMaxChargeRate) >= 0.0001f) 
                 _sink.Update();
             else if (_count == 28 && (ShieldCurrentPower <= 0 || Math.Abs(_power - ShieldCurrentPower) >= 0.0001f)) 
                 _sink.Update();
@@ -47,7 +47,8 @@ namespace DefenseShields
             if (_isServer && DsState.State.Charge < 0) {
 
                 ChargeMgr.SetCharge(0, ShieldChargeMgr.ChargeMode.Zero);
-                _overLoadLoop = 0;
+                if (!_empOverLoad) _overLoadLoop = 0;
+                else _empOverLoadLoop = 0;
             }
 
             if (_tick - ChargeMgr.LastDamageTick > 600)
@@ -61,45 +62,33 @@ namespace DefenseShields
 
         private void CalculatePowerCharge()
         {
-
             var heat = DsState.State.Heat;
             var nerfScaler = DsState.State.NerfScaler <= 0 ? 1 : DsState.State.NerfScaler;
             var hpsEfficiency = Session.Enforced.HpsEfficiency;
             var baseScaler = Session.Enforced.BaseScaler;
             var maintenanceCost = Session.Enforced.MaintenanceCost;
-            var minHP = Session.Enforced.MinHP;
-            var maxHP = Session.Enforced.MaxHP;
-
             var fortify = DsSet.Settings.FortifyShield && DsState.State.Enhancer;
-            var shieldTypeRatio = _shieldTypeRatio / 100f; // gridsize/station scaler
+            var shieldTypeRatio = _shieldTypeRatio / 100f;
             var shieldMaintainPercent = maintenanceCost / 100;
-            var modeEfficiency = DsSet.Settings.AutoManage ? 0.75f : 1f;
             _shieldCapped = DsState.State.CapModifier < 1;
 
             if (ShieldMode == ShieldType.Station && DsState.State.Enhancer)
-                hpsEfficiency *= (3.5f * modeEfficiency);
-            else if (fortify)
-            {
-                var heatSize = heat / 10;
-                var fortMod = 1 + ((10 - heatSize) * 0.2f);
-                hpsEfficiency *= (fortMod * modeEfficiency);
+                hpsEfficiency *= 3.5f;
+            else if (fortify) {
+                var fortMod = heat <= 0 ? 3f : heat == 1 ? 2f : heat == 2 ? 1.5f : 1.25f;
+                hpsEfficiency *= fortMod;
             }
-            else
-                hpsEfficiency *= modeEfficiency;
 
-            var bufferMaxScaler = (baseScaler / _sizeScaler) * (2 - nerfScaler);
+            var bufferMaxScaler = ((baseScaler * shieldTypeRatio) / _sizeScaler) * (2 - nerfScaler);
 
-            var grossHP = ShieldMaxPower * bufferMaxScaler;
-            grossHP = MathHelper.Clamp(grossHP, minHP, maxHP);
-            var reducedHP = grossHP * (1f - DsState.State.MaxHpReductionScaler);
-            ShieldMaxHp = reducedHP * shieldTypeRatio;
-
+            var maxHp = ShieldMaxPower * bufferMaxScaler;
+            var reducedMaxHp = maxHp - (maxHp * DsState.State.MaxHpReductionScaler);
+            ShieldMaxHp = reducedMaxHp;
             var bonus = 0f;
-            if (DsState.State.CapModifier < 1)
-            {
+
+            if (DsState.State.CapModifier < 1) {
                 var diff = 1 - DsState.State.CapModifier;
-                if (ShieldMode == ShieldType.Station)
-                {
+                if (ShieldMode == ShieldType.Station) {
                     bonus = 1 - (diff / 2) / 2;
                 }
                 else if (fortify)
@@ -116,7 +105,7 @@ namespace DefenseShields
 
             _shieldMaintaintPower = ShieldMaxPower * maxHpScaler * shieldMaintainPercent;
 
-            ShieldChargeBase = grossHP * maxHpScaler;
+            ShieldChargeBase = maxHp * maxHpScaler;
             ShieldMaxCharge = ShieldMaxHp * maxHpScaler;
             var powerForShield = PowerNeeded(hpsEfficiency);
 
@@ -124,7 +113,7 @@ namespace DefenseShields
 
             var overCharged = DsState.State.Charge > ShieldMaxCharge;
             if (overCharged && ++_overChargeCount >= 120) {
-                ChargeMgr.SetCharge(ShieldMaxCharge, ShieldChargeMgr.ChargeMode.OverCharge);
+                ChargeMgr.SetCharge(ShieldMaxCharge, ShieldChargeMgr.ChargeMode.Set);
                 _overChargeCount = 0;
             }
             else if (!overCharged)
@@ -151,16 +140,12 @@ namespace DefenseShields
 
                     _powerFail = false;
                 }
-
-                if (Session.Instance.Tick20)
-                    ChargeMgr.ChargeSide(ShieldChargeMgr.ChargeMode.Charge);
-                //ChargeMgr.ReportSideStatus();
             }
 
             if (heat != 0) 
                 UpdateHeatRate();
             else 
-                ExpChargeReduction = 0;
+                _expChargeReduction = 0;
             if (_count == 29 && DsState.State.Charge < ShieldMaxCharge) {
                 ChargeMgr.SetCharge(ShieldChargeRate, ShieldChargeMgr.ChargeMode.Charge);
             }
@@ -188,29 +173,25 @@ namespace DefenseShields
 
         private float PowerNeeded(float hpsEfficiency)
         {
-            var minRecharge = Session.Enforced.MinRecharge;
-            var maxRecharge = Session.Enforced.MaxRecharge;
-
             var cleanPower = ShieldAvailablePower + ShieldCurrentPower;
             _otherPower = ShieldMaxPower - cleanPower;
             var powerForShield = (cleanPower * 0.9f) - _shieldMaintaintPower;
             var rawMaxChargeRate = powerForShield > 0 ? powerForShield : 0f;
-            rawMaxChargeRate = MathHelper.Clamp(rawMaxChargeRate, minRecharge, maxRecharge);
-            ShieldMaxChargeRate = rawMaxChargeRate;
-            ShieldPeakRate = (ShieldMaxChargeRate * hpsEfficiency);
+            _shieldMaxChargeRate = rawMaxChargeRate;
+            _shieldPeakRate = (_shieldMaxChargeRate * hpsEfficiency);
 
-            if (DsState.State.Charge + ShieldPeakRate < ShieldMaxCharge) {
-                ShieldChargeRate = ShieldPeakRate;
-                _shieldConsumptionRate = ShieldMaxChargeRate;
+            if (DsState.State.Charge + _shieldPeakRate < ShieldMaxCharge) {
+                ShieldChargeRate = _shieldPeakRate;
+                _shieldConsumptionRate = _shieldMaxChargeRate;
             }
             else {
 
-                if (ShieldPeakRate > 0) {
+                if (_shieldPeakRate > 0) {
 
                     var remaining = MathHelper.Clamp(ShieldMaxCharge - DsState.State.Charge, 0, ShieldMaxCharge);
-                    var remainingScaled = remaining / ShieldPeakRate;
-                    _shieldConsumptionRate = remainingScaled * ShieldMaxChargeRate;
-                    ShieldChargeRate = ShieldPeakRate * remainingScaled;
+                    var remainingScaled = remaining / _shieldPeakRate;
+                    _shieldConsumptionRate = remainingScaled * _shieldMaxChargeRate;
+                    ShieldChargeRate = _shieldPeakRate * remainingScaled;
                 }
                 else {
                     _shieldConsumptionRate = 0;
@@ -244,7 +225,7 @@ namespace DefenseShields
 
                         DsState.State.NoPower = true;
                         _sendMessage = true;
-                        StateChangeRequest = true;
+                        ShieldChangeState();
                     }
 
                     var shieldLoss = ShieldMaxCharge * 0.0016667f;
@@ -274,7 +255,7 @@ namespace DefenseShields
 
                     DsState.State.NoPower = false;
                     _powerNoticeLoop = 0;
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                 }
             }
             return false;
@@ -334,10 +315,7 @@ namespace DefenseShields
                     {
 
                         var battery = batteries[i];
-
-                        if (!battery.IsWorking) 
-                            continue;
-
+                        if (!battery.IsWorking) continue;
                         var currentInput = battery.CurrentInput;
 
                         if (currentInput > 0)

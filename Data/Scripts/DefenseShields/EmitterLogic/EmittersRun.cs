@@ -26,13 +26,17 @@ namespace DefenseShields
                 ContainerInited = true;
                 if (Session.Enforced.Debug == 3) Log.Line($"ContainerInited: EmitterId [{Emitter.EntityId}]");
             }
+            if (Entity.InScene) OnAddedToScene();
         }
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
-
-            base.Init(objectBuilder);
-            StorageSetup();
+            try
+            {
+                base.Init(objectBuilder);
+                StorageSetup();
+            }
+            catch (Exception ex) { Log.Line($"Exception in EntityInit: {ex}"); }
         }
 
         public override bool IsSerialized()
@@ -44,32 +48,34 @@ namespace DefenseShields
             return false;
         }
 
-        private bool _addedToScene;
         public override void OnAddedToScene()
         {
-
-            _addedToScene = true;
-            MyGrid = (MyCubeGrid)Emitter.CubeGrid;
-            MyCube = Emitter as MyCubeBlock;
-            if (MyCube != null) MyCube.NeedsWorldMatrix = true;
-            SetEmitterType();
-            RegisterEvents();
-            if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: {EmitterMode} - EmitterId [{Emitter.EntityId}]");
-
+            try
+            {
+                MyGrid = (MyCubeGrid)Emitter.CubeGrid;
+                MyCube = Emitter as MyCubeBlock;
+                if (MyCube != null) MyCube.NeedsWorldMatrix = true;
+                SetEmitterType();
+                RegisterEvents();
+                if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: {EmitterMode} - EmitterId [{Emitter.EntityId}]");
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnAddedToScene: {ex}"); }
         }
 
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
-
-            if (!_bInit) BeforeInit();
-            else if (_bCount < SyncCount * _bTime)
+            try
             {
-                NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
-                if (ShieldComp?.DefenseShields?.MyGrid == MyGrid) _bCount++;
+                if (!_bInit) BeforeInit();
+                else if (_bCount < SyncCount * _bTime)
+                {
+                    NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+                    if (ShieldComp?.DefenseShields?.MyGrid == MyGrid) _bCount++;
+                }
+                else _readyToSync = true;
             }
-            else _readyToSync = true;
-
+            catch (Exception ex) { Log.Line($"Exception in UpdateOnceBeforeFrame: {ex}"); }
         }
 
         public override void UpdateBeforeSimulation()
@@ -79,6 +85,7 @@ namespace DefenseShields
                 _tick = Session.Instance.Tick;
                 _tick60 = _tick % 60 == 0;
                 var wait = _isServer && !_tick60 && EmiState.State.Backup;
+
                 MyGrid = MyCube.CubeGrid;
                 if (wait || MyGrid?.Physics == null) return;
 
@@ -113,10 +120,14 @@ namespace DefenseShields
 
         public override void OnRemovedFromScene()
         {
-            if (Session.Enforced.Debug == 3) Log.Line($"OnRemovedFromScene: {EmitterMode} - EmitterId [{Emitter.EntityId}]");
-            if (ShieldComp?.StationEmitter == this) ShieldComp.StationEmitter = null;
-            if (ShieldComp?.ShipEmitter == this) ShieldComp.ShipEmitter = null;
-            RegisterEvents(false);
+            try
+            {
+                if (Session.Enforced.Debug == 3) Log.Line($"OnRemovedFromScene: {EmitterMode} - EmitterId [{Emitter.EntityId}]");
+                if (ShieldComp?.StationEmitter == this) ShieldComp.StationEmitter = null;
+                if (ShieldComp?.ShipEmitter == this) ShieldComp.ShipEmitter = null;
+                RegisterEvents(false);
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnRemovedFromScene: {ex}"); }
         }
 
         public override void OnBeforeRemovedFromContainer()
@@ -126,49 +137,54 @@ namespace DefenseShields
 
         public override void Close()
         {
+            try
+            {
+                base.Close();
+                if (Session.Enforced.Debug == 3) Log.Line($"Close: {EmitterMode} - EmitterId [{Entity.EntityId}]");
+                if (Session.Instance.Emitters.Contains(this)) Session.Instance.Emitters.Remove(this);
 
-            base.Close();
-            if (Session.Enforced.Debug == 3) Log.Line($"Close: {EmitterMode} - EmitterId [{Entity.EntityId}]");
-            if (Session.Instance.Emitters.Contains(this)) Session.Instance.Emitters.Remove(this);
-
-            if (ShieldComp?.StationEmitter == this)
-            {
-                if ((int)EmitterMode == ShieldComp.EmitterMode)
+                if (ShieldComp?.StationEmitter == this)
                 {
-                    ShieldComp.EmitterLos = false;
-                    ShieldComp.EmitterEvent = true;
+                    if ((int)EmitterMode == ShieldComp.EmitterMode)
+                    {
+                        ShieldComp.EmitterLos = false;
+                        ShieldComp.EmitterEvent = true;
+                    }
+                    ShieldComp.StationEmitter = null;
                 }
-                ShieldComp.StationEmitter = null;
-            }
-            else if (ShieldComp?.ShipEmitter == this)
-            {
-                if ((int)EmitterMode == ShieldComp.EmitterMode)
+                else if (ShieldComp?.ShipEmitter == this)
                 {
-                    ShieldComp.EmitterLos = false;
-                    ShieldComp.EmitterEvent = true;
+                    if ((int)EmitterMode == ShieldComp.EmitterMode)
+                    {
+                        ShieldComp.EmitterLos = false;
+                        ShieldComp.EmitterEvent = true;
+                    }
+                    ShieldComp.ShipEmitter = null;
                 }
-                ShieldComp.ShipEmitter = null;
-            }
-            ShieldComp = null;
-            if (Sink != null)
-            {
-                ResourceInfo = new MyResourceSinkInfo
+                ShieldComp = null;
+                if (Sink != null)
                 {
-                    ResourceTypeId = _gId,
-                    MaxRequiredInput = 0f,
-                    RequiredInputFunc = null
-                };
-                Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
-                Sink = null;
+                    ResourceInfo = new MyResourceSinkInfo
+                    {
+                        ResourceTypeId = _gId,
+                        MaxRequiredInput = 0f,
+                        RequiredInputFunc = null
+                    };
+                    Sink.Init(MyStringHash.GetOrCompute("Utility"), ResourceInfo);
+                    Sink = null;
+                }
             }
+            catch (Exception ex) { Log.Line($"Exception in Close: {ex}"); }
         }
 
         public override void MarkForClose()
         {
-
-            base.MarkForClose();
-            if (Session.Enforced.Debug == 3) Log.Line($"MarkForClose: {EmitterMode} - EmitterId [{Entity.EntityId}]");
-
+            try
+            {
+                base.MarkForClose();
+                if (Session.Enforced.Debug == 3) Log.Line($"MarkForClose: {EmitterMode} - EmitterId [{Entity.EntityId}]");
+            }
+            catch (Exception ex) { Log.Line($"Exception in MarkForClose: {ex}"); }
         }
     }
 }

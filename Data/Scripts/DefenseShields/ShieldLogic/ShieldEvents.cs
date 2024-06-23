@@ -136,6 +136,7 @@
             if (!DsState.State.Online && !MyCube.IsWorking) return "[Controller Offline]";
             if (!DsState.State.Online && DsState.State.NoPower) return "[Insufficient Power]";
             if (!DsState.State.Online && DsState.State.Overload) return "[Overloaded]";
+            if (!DsState.State.Online && DsState.State.EmpOverLoad) return "[Emp Overload]";
             if (!DsState.State.ControllerGridAccess) return "[Invalid Owner]";
             if (DsState.State.Waking) return "[Coming Online]";
             if (DsState.State.Suspended || DsState.State.Mode == 4) return "[Controller Standby]";
@@ -183,6 +184,8 @@
                 var status = GetShieldStatus();
                 if (status == "[Shield Up]" || status == "[Shield Down]" || status == "[Shield Offline]") {
 
+                    var redirectedSides = ShuntedSideCount();
+                    var bonusAmount = redirectedSides * 20;
                     stringBuilder.Append(Localization.GetText($"InfoShieldStatus{status}") + maxString + hpValue.ToString("N0") +
                                          $"\n{Localization.GetText("InfoShield[Shield HP__]")}: " + (DsState.State.Charge * ConvToHp).ToString("N0") + " (" + shieldPercent.ToString("0") + "%)" +
                                          $"\n{Localization.GetText("InfoShield[HP Per Sec_]")}: " + (ShieldChargeRate * ConvToHp).ToString("N0") +

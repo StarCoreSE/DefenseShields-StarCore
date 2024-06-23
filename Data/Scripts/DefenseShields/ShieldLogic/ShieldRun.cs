@@ -44,35 +44,82 @@ namespace DefenseShields
 
         public override void OnAddedToScene()
         {
+            try
+            {
+                if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: GridId:{Shield.CubeGrid.EntityId} - ShieldId [{Shield.EntityId}]");
 
-            if (Session.Enforced.Debug == 3) Log.Line($"OnAddedToScene: GridId:{Shield.CubeGrid.EntityId} - ShieldId [{Shield.EntityId}]");
-
-            MyGrid = MyCube?.CubeGrid;
-            RegisterEvents();
-            AssignSlots();
-            _resetEntity = true;
-
+                MyGrid = MyCube.CubeGrid;
+                RegisterEvents();
+                AssignSlots();
+                _resetEntity = true;
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnAddedToScene: {ex}"); }
         }
 
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
-            if (!_bInit) BeforeInit();
-            else if (_bCount < SyncCount * _bTime)
+            try
             {
-                NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
-                if (ShieldComp?.DefenseShields != null && ShieldComp.DefenseShields.Warming) _bCount++;
+                if (!_bInit) BeforeInit();
+                else if (_bCount < SyncCount * _bTime)
+                {
+                    NeedsUpdate |= MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+                    if (ShieldComp?.DefenseShields != null && ShieldComp.DefenseShields.Warming) _bCount++;
+                }
+                else _readyToSync = true;
             }
-            else _readyToSync = true;
+            catch (Exception ex) { Log.Line($"Exception in Controller UpdateOnceBeforeFrame: {ex}"); }
         }
 
         public override void UpdateBeforeSimulation()
         {
             try
             {
-                ShieldRun();
-                if (StateChangeRequest)
+
+                //if (_tick30)
+                //    ChargeMgr.ChargeSide(ShieldChargeMgr.ChargeMode.Charge);
+
+                if (!EntityAlive() || !_isServer && !ClientInitPacket || Session.Instance.ShutDown) return;
+
+                if (!_isDedicated && _clientMessageCount < DsState.State.MessageCount)
+                    BroadcastMessage();
+
+                var shield = ShieldOn();
+                if (shield != State.Active)
+                {
+                    if (NotFailed)
+                    {
+                        if (Session.Enforced.Debug >= 2) Log.Line($"FailState: {shield} - ShieldId [{Shield.EntityId}]");
+                        var up = shield != State.Lowered;
+                        var awake = shield != State.Sleep;
+                        var clear = up && awake;
+                        OfflineShield(clear, up);
+                    }
+                    else if (_isServer && _sendMessage) 
+                        ShieldChangeState();
+                    return;
+                }
+
+                if (!_isServer) return;
+
+                if (!DsState.State.Online && DsState.State.ActiveEmitterId != 0 && _tick600) {
                     ShieldChangeState();
+                    return;
+                }
+
+                if (_comingOnline) ComingOnlineSetup();
+                if (_mpActive && (_forceBufferSync || _count == 29 || _tick180))
+                {
+                    var newPercentColor = UtilsStatic.GetShieldColorFromFloat(DsState.State.ShieldPercent);
+                    if (_forceBufferSync || newPercentColor != _oldPercentColor)
+                    {
+                        ShieldChangeState();
+                        _oldPercentColor = newPercentColor;
+                        _forceBufferSync = false;
+                    }
+                    else if (_tick180) ShieldChangeState();
+                }
             }
             catch (Exception ex) { Log.Line($"Exception in UpdateBeforeSimulation: {ex}"); }
         }
@@ -97,61 +144,72 @@ namespace DefenseShields
 
         public override void OnRemovedFromScene()
         {
-            if (!_allInited) return;
-            if (Session.Enforced.Debug >= 3) Log.Line($"OnRemovedFromScene: {ShieldMode} - GridId:{Shield.CubeGrid.EntityId} - ShieldId [{Shield.EntityId}]");
-
-            if (ShieldComp?.DefenseShields == this)
+            try
             {
-                OfflineShield(true, false, true);
-                ShieldComp.DefenseShields = null;
-            }
+                if (!_allInited) return;
+                if (Session.Enforced.Debug >= 3) Log.Line($"OnRemovedFromScene: {ShieldMode} - GridId:{Shield.CubeGrid.EntityId} - ShieldId [{Shield.EntityId}]");
 
-            RegisterEvents(false);
-            InitEntities(false);
-            _shellPassive?.Render?.RemoveRenderObjects();
-            ShellActive?.Render?.RemoveRenderObjects();
-            ShieldEnt?.Render?.RemoveRenderObjects();
+                if (ShieldComp?.DefenseShields == this)
+                {
+                    OfflineShield(true, false, true);
+                    ShieldComp.DefenseShields = null;
+                }
+
+                RegisterEvents(false);
+                InitEntities(false);
+                _shellPassive?.Render?.RemoveRenderObjects();
+                ShellActive?.Render?.RemoveRenderObjects();
+                ShieldEnt?.Render?.RemoveRenderObjects();
+            }
+            catch (Exception ex) { Log.Line($"Exception in OnRemovedFromScene: {ex}"); }
         }
 
         public override void MarkForClose()
         {
-            base.MarkForClose();
+            try
+            {
+                base.MarkForClose();
+            }
+            catch (Exception ex) { Log.Line($"Exception in MarkForClose: {ex}"); }
         }
 
         public override void Close()
         {
-            base.Close();
-            if (!_allInited) return;
-            if (Session.Enforced.Debug >= 3) Log.Line($"Close: {ShieldMode} - ShieldId [{Shield.EntityId}]");
-
-            if (ShieldComp?.DefenseShields == this)
+            try
             {
-                OfflineShield(true, false, true);
-                ShieldComp.DefenseShields = null;
-            }
+                base.Close();
+                if (!_allInited) return;
+                if (Session.Enforced.Debug >= 3) Log.Line($"Close: {ShieldMode} - ShieldId [{Shield.EntityId}]");
 
-            if (Session.Instance.Controllers.Contains(this)) Session.Instance.Controllers.Remove(this);
-            bool value1;
-
-            if (Session.Instance.FunctionalShields.ContainsKey(this)) Session.Instance.FunctionalShields.TryRemove(this, out value1);
-
-            Icosphere = null;
-            InitEntities(false);
-            MyAPIGateway.Session.OxygenProviderSystem.RemoveOxygenGenerator(_ellipsoidOxyProvider);
-            if (_sink != null)
-            {
-                _resourceInfo = new MyResourceSinkInfo
+                if (ShieldComp?.DefenseShields == this)
                 {
-                    ResourceTypeId = GId,
-                    MaxRequiredInput = 0f,
-                    RequiredInputFunc = null
-                };
-                _sink.Init(MyStringHash.GetOrCompute("Defense"), _resourceInfo);
-                _sink = null;
+                    OfflineShield(true, false, true);
+                    ShieldComp.DefenseShields = null;
+                }
+
+                if (Session.Instance.Controllers.Contains(this)) Session.Instance.Controllers.Remove(this);
+                bool value1;
+
+                if (Session.Instance.FunctionalShields.ContainsKey(this)) Session.Instance.FunctionalShields.TryRemove(this, out value1);
+
+                Icosphere = null;
+                InitEntities(false);
+                MyAPIGateway.Session.OxygenProviderSystem.RemoveOxygenGenerator(_ellipsoidOxyProvider);
+                if (_sink != null)
+                {
+                    _resourceInfo = new MyResourceSinkInfo
+                    {
+                        ResourceTypeId = GId,
+                        MaxRequiredInput = 0f,
+                        RequiredInputFunc = null
+                    };
+                    _sink.Init(MyStringHash.GetOrCompute("Defense"), _resourceInfo);
+                    _sink = null;
+                }
+
+                ShieldComp = null;
             }
-
-            ShieldComp = null;
-
+            catch (Exception ex) { Log.Line($"Exception in Close: {ex}"); }
         }
         #endregion
     }
