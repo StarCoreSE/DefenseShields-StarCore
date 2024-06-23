@@ -17,8 +17,6 @@ namespace DefenseShields
         private void BeforeInit()
         {
             if (Emitter.CubeGrid.Physics == null) return;
-            if (!_addedToScene)
-                OnAddedToScene();
             Session.Instance.Emitters.Add(this);
             PowerInit();
             _isServer = Session.Instance.IsServer;

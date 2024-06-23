@@ -1,51 +1,7 @@
 <?xml version="1.0"?>
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <TransparentMaterials>
-	<TransparentMaterial>
-		<Id>
-			<TypeId>TransparentMaterialDefinition</TypeId>
-			<SubtypeId>EnglishFontMono</SubtypeId>
-		</Id>
-		<AlphaMistingEnable>false</AlphaMistingEnable>
-		<AlphaSaturation>1</AlphaSaturation>
-		<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-		<IgnoreDepth>false</IgnoreDepth>
-		<SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-		<Texture>Textures\GUI\EnglishFontMono.dds</Texture>
-		<UseAtlas>false</UseAtlas>
-		<Reflectivity>0</Reflectivity>
-		<UVOffset>
-			<X>0</X>
-			<Y>0</Y>
-		</UVOffset>
-		<UVSize>
-			<X>1</X>
-			<Y>1</Y>
-		</UVSize>
-		
-	</TransparentMaterial>
-	<TransparentMaterial>
-		<Id>
-			<TypeId>TransparentMaterialDefinition</TypeId>
-			<SubtypeId>EnglishFontShadow</SubtypeId>
-		</Id>
-		<AlphaMistingEnable>false</AlphaMistingEnable>
-		<AlphaSaturation>1</AlphaSaturation>
-		<CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-		<IgnoreDepth>false</IgnoreDepth>
-		<SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-		<Texture>Textures\GUI\EnglishFontShadow.dds</Texture>
-		<UseAtlas>false</UseAtlas>
-		<Reflectivity>0</Reflectivity>
-		<UVOffset>
-			<X>0</X>
-			<Y>0</Y>
-		</UVOffset>
-		<UVSize>
-			<X>1</X>
-			<Y>1</Y>
-		</UVSize>
-	</TransparentMaterial>
+
     <TransparentMaterial>
       <Id>
         <TypeId>TransparentMaterialDefinition</TypeId>
@@ -5401,60 +5357,6 @@
 <TransparentMaterial>
   <Id>
     <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss5</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss5.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
     <SubtypeId>DS_ShieldHPLoss10</SubtypeId>
   </Id>
   <AlphaMistingEnable>false</AlphaMistingEnable>
@@ -5463,60 +5365,6 @@
   <IgnoreDepth>false</IgnoreDepth>
   <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
   <Texture>Textures\Icons\DS_ShieldHPLoss10.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss15</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss15.dds</Texture>
   <UseAtlas>false</UseAtlas>
   <NeedSort>true</NeedSort>
   <UVOffset>
@@ -5617,60 +5465,6 @@
 <TransparentMaterial>
   <Id>
     <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss25</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss25.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
     <SubtypeId>DS_ShieldHPLoss30</SubtypeId>
   </Id>
   <AlphaMistingEnable>false</AlphaMistingEnable>
@@ -5679,60 +5473,6 @@
   <IgnoreDepth>false</IgnoreDepth>
   <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
   <Texture>Textures\Icons\DS_ShieldHPLoss30.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss35</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss35.dds</Texture>
   <UseAtlas>false</UseAtlas>
   <NeedSort>true</NeedSort>
   <UVOffset>
@@ -5833,60 +5573,6 @@
 <TransparentMaterial>
   <Id>
     <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss45</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss45.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
     <SubtypeId>DS_ShieldHPLoss50</SubtypeId>
   </Id>
   <AlphaMistingEnable>false</AlphaMistingEnable>
@@ -5895,60 +5581,6 @@
   <IgnoreDepth>false</IgnoreDepth>
   <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
   <Texture>Textures\Icons\DS_ShieldHPLoss50.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss55</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss55.dds</Texture>
   <UseAtlas>false</UseAtlas>
   <NeedSort>true</NeedSort>
   <UVOffset>
@@ -6049,60 +5681,6 @@
 <TransparentMaterial>
   <Id>
     <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss65</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss65.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
     <SubtypeId>DS_ShieldHPLoss70</SubtypeId>
   </Id>
   <AlphaMistingEnable>false</AlphaMistingEnable>
@@ -6111,60 +5689,6 @@
   <IgnoreDepth>false</IgnoreDepth>
   <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
   <Texture>Textures\Icons\DS_ShieldHPLoss70.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss75</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss75.dds</Texture>
   <UseAtlas>false</UseAtlas>
   <NeedSort>true</NeedSort>
   <UVOffset>
@@ -6265,60 +5789,6 @@
 <TransparentMaterial>
   <Id>
     <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss85</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss85.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
     <SubtypeId>DS_ShieldHPLoss90</SubtypeId>
   </Id>
   <AlphaMistingEnable>false</AlphaMistingEnable>
@@ -6369,114 +5839,6 @@
   <SpecularColorFactor>0</SpecularColorFactor>
   <IsFlareOccluder>false</IsFlareOccluder>
 </TransparentMaterial>
-
-<TransparentMaterial>
-  <Id>
-    <TypeId>TransparentMaterialDefinition</TypeId>
-    <SubtypeId>DS_ShieldHPLoss95</SubtypeId>
-  </Id>
-  <AlphaMistingEnable>false</AlphaMistingEnable>
-  <AlphaSaturation>1</AlphaSaturation>
-  <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-  <IgnoreDepth>false</IgnoreDepth>
-  <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-  <Texture>Textures\Icons\DS_ShieldHPLoss95.dds</Texture>
-  <UseAtlas>false</UseAtlas>
-  <NeedSort>true</NeedSort>
-  <UVOffset>
-    <X>1</X>
-    <Y>1</Y>
-  </UVOffset>
-  <UVSize>
-    <X>1</X>
-    <Y>1</Y>
-  </UVSize>
-  <Color>
-    <X>.85</X>
-    <Y>.85</Y>
-    <Z>.85</Z>
-    <W>1</W>
-  </Color>
-  <ColorAdd>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ColorAdd>
-  <ShadowMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </ShadowMultiplier>
-  <LightMultiplier>
-    <X>0</X>
-    <Y>0</Y>
-    <Z>0</Z>
-    <W>0</W>
-  </LightMultiplier>
-  <Reflectivity>0</Reflectivity>
-  <Fresnel>0</Fresnel>
-  <ReflectionShadow>0</ReflectionShadow>
-  <Gloss>0</Gloss>
-  <GlossTextureAdd>0</GlossTextureAdd>
-  <SpecularColorFactor>0</SpecularColorFactor>
-  <IsFlareOccluder>false</IsFlareOccluder>
-</TransparentMaterial>
-
-<TransparentMaterial>
-      <Id>
-        <TypeId>TransparentMaterialDefinition</TypeId>
-        <SubtypeId>DS_ShieldFortify</SubtypeId>
-      </Id>
-      <AlphaMistingEnable>false</AlphaMistingEnable>
-      <AlphaSaturation>1</AlphaSaturation>
-      <CanBeAffectedByOtherLights>false</CanBeAffectedByOtherLights>
-      <IgnoreDepth>false</IgnoreDepth>
-      <SoftParticleDistanceScale>1</SoftParticleDistanceScale>
-      <Texture>Textures\Icons\DS_ShieldFortify.dds</Texture>
-      <UseAtlas>false</UseAtlas>
-      <NeedSort>true</NeedSort>
-      <UVOffset>
-        <X>1</X>
-        <Y>1</Y>
-      </UVOffset>
-      <UVSize>
-        <X>1</X>
-        <Y>1</Y>
-      </UVSize>
-      <Color>
-        <X>.95</X>
-        <Y>.95</Y>
-        <Z>.95</Z>
-        <W>1</W>
-      </Color>
-      <ColorAdd>
-        <X>0</X>
-        <Y>0</Y>
-        <Z>0</Z>
-        <W>0.1</W>
-      </ColorAdd>
-      <ShadowMultiplier>
-        <X>0</X>
-        <Y>0</Y>
-        <Z>0</Z>
-        <W>0</W>
-      </ShadowMultiplier>
-      <LightMultiplier>
-        <X>0</X>
-        <Y>0</Y>
-        <Z>0</Z>
-        <W>0</W>
-      </LightMultiplier>
-      <Reflectivity>0</Reflectivity>
-      <Fresnel>0</Fresnel>
-      <ReflectionShadow>0</ReflectionShadow>
-      <Gloss>0</Gloss>
-      <GlossTextureAdd>0</GlossTextureAdd>
-      <SpecularColorFactor>0</SpecularColorFactor>
-      <IsFlareOccluder>false</IsFlareOccluder>
-    </TransparentMaterial>
 
   </TransparentMaterials>
 </Definitions>

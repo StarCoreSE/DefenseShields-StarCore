@@ -14,10 +14,10 @@ namespace DefenseShields
         private void PlayerMessages(PlayerNotice notice)
         {
             double radius;
-            if (notice == PlayerNotice.OverLoad) radius = 500;
+            if (notice == PlayerNotice.EmpOverLoad || notice == PlayerNotice.OverLoad) radius = 500;
             else radius = ShieldSphere.Radius * 2;
 
-            var sphere = new BoundingSphereD(WorldEllipsoidCenter, radius);
+            var sphere = new BoundingSphereD(DetectionCenter, radius);
             var sendMessage = false;
             IMyPlayer targetPlayer = null;
 
@@ -43,6 +43,9 @@ namespace DefenseShields
                     break;
                 case PlayerNotice.OverLoad:
                     if (sendMessage) MyAPIGateway.Utilities.ShowNotification("[ " + MyGrid.DisplayName + " ]" + " -- shield has overloaded, restarting in 45 seconds!!", 8000, "Red");
+                    break;
+                case PlayerNotice.EmpOverLoad:
+                    if (sendMessage) MyAPIGateway.Utilities.ShowNotification("[ " + MyGrid.DisplayName + " ]" + " -- shield was EMPed, restarting in 60 seconds!!", 8000, "Red");
                     break;
                 case PlayerNotice.Remodulate:
                     if (sendMessage) MyAPIGateway.Utilities.ShowNotification("[ " + MyGrid.DisplayName + " ]" + " -- shield remodulating, restarting in 5 seconds.", 4800);
@@ -76,6 +79,9 @@ namespace DefenseShields
                 case PlayerNotice.OverLoad:
                     pair = _audioOverload;
                     break;
+                case PlayerNotice.EmpOverLoad:
+                    pair = _audioEmp;
+                    break;
                 case PlayerNotice.Remodulate:
                     pair = _audioRemod;
                     break;
@@ -96,6 +102,7 @@ namespace DefenseShields
             if (!DsState.State.EmitterLos && GridIsMobile && !DsState.State.Waking) PlayerMessages(PlayerNotice.NoLos);
             else if (DsState.State.NoPower || forceNoPower) PlayerMessages(PlayerNotice.NoPower);
             else if (DsState.State.Overload) PlayerMessages(PlayerNotice.OverLoad);
+            else if (DsState.State.EmpOverLoad) PlayerMessages(PlayerNotice.EmpOverLoad);
             else if (DsState.State.FieldBlocked) PlayerMessages(PlayerNotice.FieldBlocked);
             else if (DsState.State.Waking) PlayerMessages(PlayerNotice.EmitterInit);
             else if (DsState.State.Remodulate) PlayerMessages(PlayerNotice.Remodulate);

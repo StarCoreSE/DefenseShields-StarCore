@@ -42,7 +42,6 @@ namespace DefenseShields
                 HeatSink = TerminalHelpers.AddButton(comp?.Shield, "DS-SinkHeat", Localization.GetText("TerminalHeatSink"), Localization.GetText("TerminalHeatSinkTooltip"), DsUi.HeatSinkAction, DsUi.HeatSinkEnable, DsUi.HeatSinkVis);
                 TerminalHelpers.Separator(comp?.Shield, "DS-C_sep0");
                 ToggleShield = TerminalHelpers.AddOnOff(comp?.Shield, "DS-C_ToggleShield", Localization.GetText("TerminalToggleShieldTitle"), Localization.GetText("TerminalToggleShieldTooltip"), Localization.GetText("TerminalSwitchUp"), Localization.GetText("TerminalSwitchDown"), DsUi.GetRaiseShield, DsUi.SetRaiseShield);
-                AutoManage = TerminalHelpers.AddOnOff(comp?.Shield, "DS-C_AutoManage", Localization.GetText("TerminalAutoManageTitle"), Localization.GetText("TerminalAutoManageTooltip"), Localization.GetText("TerminalSwitchOn"), Localization.GetText("TerminalSwitchOff"), DsUi.GetAutoManage, DsUi.SetAutoManage, DsUi.AutoManageEnabled);
                 TerminalHelpers.Separator(comp?.Shield, "DS-C_sep1");
                 //ChargeSlider = TerminalHelpers.AddSlider(comp?.Shield, "DS-C_ChargeRate", "Shield Charge Rate", "Percentage Of Power The Shield May Consume", DsUi.GetRate, DsUi.SetRate);
                 //ChargeSlider.SetLimits(20, 95);
@@ -98,7 +97,7 @@ namespace DefenseShields
                 DimShieldHitsCheckBox = TerminalHelpers.AddCheckbox(comp?.Shield, "DS-C_DimShieldHits", Localization.GetText("TerminalDimShieldHitsCheckBoxTitle"), Localization.GetText("TerminalDimShieldHitsCheckBoxTooltip"), DsUi.GetDimShieldHits, DsUi.SetDimShieldHits);
 
                 TerminalHelpers.Separator(comp?.Shield, "DS-C_sep6");
-                SideShunting = TerminalHelpers.AddCheckbox(comp?.Shield, "DS-C_SideRedirect", Localization.GetText("TerminalSideShuntingTitle"), Localization.GetText("TerminalSideShuntingTooltip"), DsUi.GetSideShunting, DsUi.SetSideShunting, DsUi.SetSideShuntingVis);
+                SideShunting = TerminalHelpers.AddCheckbox(comp?.Shield, "DS-C_SideRedirect", Localization.GetText("TerminalSideShuntingTitle"), Localization.GetText("TerminalSideShuntingTooltip"), DsUi.GetSideShunting, DsUi.SetSideShunting);
                 ShowShunting = TerminalHelpers.AddCheckbox(comp?.Shield, "DS-C_ShowRedirect", Localization.GetText("TerminalShowShuntingTitle"), Localization.GetText("TerminalShowShuntingTooltip"), DsUi.GetShowShunting, DsUi.SetShowShunting);
 
                 TopShield = TerminalHelpers.AddOnOff(comp?.Shield, "DS-C_TopShield", Localization.GetText("TerminalTopShieldTitle"), Localization.GetText("TerminalTopShieldTooltip"), Localization.GetText("TerminalSwitchPush"), Localization.GetText("TerminalSwitchPull"), DsUi.GeTopShield, DsUi.SetTopShield, DsUi.RedirectEnabled);
@@ -140,36 +139,6 @@ namespace DefenseShields
                 DsControl = true;
             }
             catch (Exception ex) { Log.Line($"Exception in CreateControlerUi: {ex}"); }
-        }
-
-
-        public void CreateModulatorUi(IMyTerminalBlock block)
-        {
-            try
-            {
-                if (ModControl) return;
-                var comp = block?.GameLogic?.GetAs<Modulators>();
-                ModSep1 = TerminalHelpers.Separator(comp?.Modulator, "DS-M_sep1");
-                ModDamage = TerminalHelpers.AddModSlider(comp?.Modulator, "DS-M_DamageModulation", Localization.GetText("TerminalModDamageTitle"), Localization.GetText("TerminalModDamageTooltip"), ModUi.GetDamage, ModUi.SetDamage, null, ModUi.GetDamageVis, ModUi.ModWriter);
-                ModDamage.SetLimits(-200, 200);
-                ModSep2 = TerminalHelpers.Separator(comp?.Modulator, "DS-M_sep2");
-                ModReInforce = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateReInforceProt", Localization.GetText("TerminalModReInforceTitle"), Localization.GetText("TerminalModReInforceTooltip"), ModUi.GetReInforceProt, ModUi.SetReInforceProt);
-                AggregateModulation = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_AggreateModulation", Localization.GetText("TerminalPassiveModulationTitle"), Localization.GetText("TerminalPassiveModulationTooltip"), ModUi.GetAggregateModulation, ModUi.SetAggregateModulation, ModUi.GetAggregateModulationVis);
-                ModVoxels = TerminalHelpers.AddCheckbox(comp?.Modulator, " DS-M_ModulateVoxels", Localization.GetText("TerminalModVoxelsTitle"), Localization.GetText("TerminalModVoxelsTooltip"), ModUi.GetVoxels, ModUi.SetVoxels);
-                ModGrids = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateGrids", Localization.GetText("TerminalModGridsTitle"), Localization.GetText("TerminalModGridsTooltip"), ModUi.GetGrids, ModUi.SetGrids);
-                ModAllies = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateAllies", Localization.GetText("TerminalModAlliesTitle"), Localization.GetText("TerminalModAlliesTooltip"), ModUi.GetAllies, ModUi.SetAllies);
-                ModEmp = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateEmpProt", Localization.GetText("TerminalModEmpTitle"), Localization.GetText("TerminalModEmpTooltip"), ModUi.GetEmpProt, ModUi.SetEmpProt);
-
-                CreateActionDamageModRate<IMyUpgradeModule>(ModDamage);
-
-                CreateAction<IMyUpgradeModule>(ModVoxels);
-                CreateAction<IMyUpgradeModule>(ModGrids);
-                CreateAction<IMyUpgradeModule>(AggregateModulation);
-                CreateAction<IMyUpgradeModule>(ModEmp);
-                CreateAction<IMyUpgradeModule>(ModReInforce);
-                ModControl = true;
-            }
-            catch (Exception ex) { Log.Line($"Exception in CreateModulatorUi: {ex}"); }
         }
 
         internal static void TerminalDepthIncrease(IMyTerminalBlock blk)
@@ -410,6 +379,35 @@ namespace DefenseShields
             {
             }
             catch (Exception ex) { Log.Line($"Exception in CreateControlerUi: {ex}"); }
+        }
+
+        public void CreateModulatorUi(IMyTerminalBlock block)
+        {
+            try
+            {
+                if (ModControl) return;
+                var comp = block?.GameLogic?.GetAs<Modulators>();
+                ModSep1 = TerminalHelpers.Separator(comp?.Modulator, "DS-M_sep1");
+                ModDamage = TerminalHelpers.AddModSlider(comp?.Modulator, "DS-M_DamageModulation", Localization.GetText("TerminalModDamageTitle"), Localization.GetText("TerminalModDamageTooltip"), ModUi.GetDamage, ModUi.SetDamage, null, null, ModUi.ModWriter);
+                ModDamage.SetLimits(-200, 200);
+                ModSep2 = TerminalHelpers.Separator(comp?.Modulator, "DS-M_sep2");
+                ModReInforce = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateReInforceProt", Localization.GetText("TerminalModReInforceTitle"), Localization.GetText("TerminalModReInforceTooltip"), ModUi.GetReInforceProt, ModUi.SetReInforceProt);
+                PassiveModulation = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_PassiveModulation", Localization.GetText("TerminalPassiveModulationTitle"), Localization.GetText("TerminalPassiveModulationTooltip"), ModUi.GetPassiveModulation, ModUi.SetPassiveModulation);
+                ModVoxels = TerminalHelpers.AddCheckbox(comp?.Modulator, " DS-M_ModulateVoxels", Localization.GetText("TerminalModVoxelsTitle"), Localization.GetText("TerminalModVoxelsTooltip"), ModUi.GetVoxels, ModUi.SetVoxels);
+                ModGrids = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateGrids", Localization.GetText("TerminalModGridsTitle"), Localization.GetText("TerminalModGridsTooltip"), ModUi.GetGrids, ModUi.SetGrids);
+                ModAllies = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateAllies", Localization.GetText("TerminalModAlliesTitle"), Localization.GetText("TerminalModAlliesTooltip"), ModUi.GetAllies, ModUi.SetAllies);
+                ModEmp = TerminalHelpers.AddCheckbox(comp?.Modulator, "DS-M_ModulateEmpProt", Localization.GetText("TerminalModEmpTitle"), Localization.GetText("TerminalModEmpTooltip"), ModUi.GetEmpProt, ModUi.SetEmpProt);
+
+                CreateActionDamageModRate<IMyUpgradeModule>(ModDamage);
+
+                CreateAction<IMyUpgradeModule>(ModVoxels);
+                CreateAction<IMyUpgradeModule>(ModGrids);
+                CreateAction<IMyUpgradeModule>(PassiveModulation);
+                CreateAction<IMyUpgradeModule>(ModEmp);
+                CreateAction<IMyUpgradeModule>(ModReInforce);
+                ModControl = true;
+            }
+            catch (Exception ex) { Log.Line($"Exception in CreateModulatorUi: {ex}"); }
         }
 
         public void CreateO2GeneratorUi(IMyTerminalBlock block)

@@ -183,13 +183,13 @@ namespace DefenseShields
 
             if (GridIsMobile) {
 
-                WorldEllipsoidCenter = MyGridCenter + worldOffset;
+                DetectionCenter = MyGridCenter + worldOffset;
 
                 _updateMobileShape = false;
                 if (_shapeChanged) CreateMobileShape(localOffsetMeters);
                 DetectionMatrix = ShieldShapeMatrix * gridMatrix;
                 SQuaternion = Quaternion.CreateFromRotationMatrix(gridMatrix);
-                ShieldSphere.Center = WorldEllipsoidCenter;
+                ShieldSphere.Center = DetectionCenter;
                 ShieldSphere.Radius = ShieldSize.AbsMax();
 
 
@@ -217,9 +217,9 @@ namespace DefenseShields
 
                 OffsetEmitterWMatrix = MatrixD.CreateWorld(translationInWorldSpace, gridMatrix.Forward, gridMatrix.Up);
 
-                WorldEllipsoidCenter = OffsetEmitterWMatrix.Translation;
+                DetectionCenter = OffsetEmitterWMatrix.Translation;
 
-                var halfDistToCenter = 1000 - Vector3D.Distance(WorldEllipsoidCenter, emitterCenter);
+                var halfDistToCenter = 1000 - Vector3D.Distance(DetectionCenter, emitterCenter);
                 var vectorScale = new Vector3D(MathHelper.Clamp(width, 30, halfDistToCenter), MathHelper.Clamp(height, 30, halfDistToCenter), MathHelper.Clamp(depth, 30, halfDistToCenter));
 
                 DetectionMatrix = MatrixD.Rescale(OffsetEmitterWMatrix, vectorScale);
@@ -227,14 +227,14 @@ namespace DefenseShields
 
                 ShieldSize = DetectionMatrix.Scale;
                 SQuaternion = Quaternion.CreateFromRotationMatrix(OffsetEmitterWMatrix);
-                ShieldSphere.Center = WorldEllipsoidCenter;
+                ShieldSphere.Center = DetectionCenter;
                 ShieldSphere.Radius = ShieldSize.AbsMax();
             }
 
-            ShieldSphere3K.Center = WorldEllipsoidCenter;
-            WebSphere.Center = WorldEllipsoidCenter;
+            ShieldSphere3K.Center = DetectionCenter;
+            WebSphere.Center = DetectionCenter;
 
-            SOriBBoxD.Center = WorldEllipsoidCenter;
+            SOriBBoxD.Center = DetectionCenter;
             SOriBBoxD.Orientation = SQuaternion;
 
             if (_shapeChanged) {
@@ -253,6 +253,7 @@ namespace DefenseShields
                 var rawScaler = Math.Sqrt(ellipsoidMagic);
                 _sizeScaler = (float)rawScaler;
 
+                /// Large ship bonus
                 var size = DsState.State.RealGridHalfExtents.Volume * 2;
                 var scaleMod = size * (size * 0.00000012d);
                 var scaleSqrt = Math.Sqrt(scaleMod) - 1d;
@@ -261,9 +262,10 @@ namespace DefenseShields
 
                 if (ShieldMode != ShieldType.Station && DsState.State.BlockDensity >= 1 && volumeModifier >= 1)
                     _sizeScaler /= (float)volumeModifier;
+                /// 
                 
                 if (_isServer) {
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                     ShieldComp.ShieldVolume = DetectMatrixOutside.Scale.Volume;
                 }
             }
@@ -286,7 +288,7 @@ namespace DefenseShields
 
                 ShapeChangeTick = _tick;
             }
-            ShieldEnt.PositionComp.SetPosition(WorldEllipsoidCenter);
+            ShieldEnt.PositionComp.SetPosition(DetectionCenter);
             BoundingBoxD.CreateFromSphere(ref WebSphere, out WebBox);
             BoundingBoxD.CreateFromSphere(ref ShieldSphere3K, out ShieldBox3K);
         }

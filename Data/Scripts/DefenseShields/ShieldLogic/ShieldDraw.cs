@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using DefenseShields.Support;
 using Sandbox.ModAPI;
 using VRage.Game;
@@ -7,7 +6,7 @@ using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 using VRageMath;
-using static VRage.Game.MyObjectBuilder_CurveDefinition;
+using static VRage.Game.MyObjectBuilder_SessionComponentMission;
 using BlendTypeEnum = VRageRender.MyBillboard.BlendTypeEnum;
 namespace DefenseShields
 {
@@ -27,6 +26,7 @@ namespace DefenseShields
             var activeVisible = DetermineVisualState(reInforce);
             ChargeMgr.WorldImpactPosition = Vector3D.NegativeInfinity;
 
+            var kineticHit = ChargeMgr.HitType == HitType.Kinetic;
             _localImpactPosition = Vector3D.NegativeInfinity;
 
             if (impactPos != Vector3D.NegativeInfinity)
@@ -34,10 +34,13 @@ namespace DefenseShields
                 if (_isServer && ChargeMgr.WebDamage && GridIsMobile)
                 {
                     Vector3 pointVel;
-                    var gridCenter = WorldEllipsoidCenter;
+                    var gridCenter = DetectionCenter;
                     MyGrid.Physics.GetVelocityAtPointLocal(ref gridCenter, out pointVel);
                     impactPos += (Vector3D)pointVel * Session.TwoStep;
                 }
+
+                if (kineticHit) KineticCoolDown = 0;
+                else if (ChargeMgr.HitType == HitType.Energy) EnergyCoolDown = 0;
 
                 var cubeBlockLocalMatrix = MyGrid.PositionComp.LocalMatrixRef;
                 var referenceWorldPosition = cubeBlockLocalMatrix.Translation;
@@ -45,6 +48,8 @@ namespace DefenseShields
                 var localPosition = Vector3D.TransformNormal(worldDirection, MatrixD.Transpose(cubeBlockLocalMatrix));
                 _localImpactPosition = localPosition;
             }
+
+            ChargeMgr.HitType = HitType.Kinetic;
 
             if (DsState.State.Online)
             {
@@ -80,7 +85,7 @@ namespace DefenseShields
             if (Session.Instance.Settings.ClientConfig.ShowHitRings && Icosphere.ImpactRings.Count > 0)
             {
                 var draw = sphereOnCamera && DsState.State.Online && !_viewInShield;
-                Icosphere.Draw(renderId, draw);
+                Icosphere.Draw(renderId, draw, this);
             }
 
             ChargeMgr.HitWave = false;
@@ -107,7 +112,7 @@ namespace DefenseShields
         {
             ChargeMgr.WebDamage = false;
             HandlerImpact.Active = false;
-            if (HandlerImpact.HitBlock == null) return WorldEllipsoidCenter;
+            if (HandlerImpact.HitBlock == null) return DetectionCenter;
 
             Vector3D originHit;
             HandlerImpact.HitBlock.ComputeWorldCenter(out originHit);
@@ -302,7 +307,7 @@ namespace DefenseShields
                 return;
             }
 
-            var distFromShield = Vector3D.DistanceSquared(playerPos, WorldEllipsoidCenter);
+            var distFromShield = Vector3D.DistanceSquared(playerPos, DetectionCenter);
 
             var takeOverHud = lastOwner == null || lastOwner != this && distFromShield <= Session.Instance.HudShieldDist;
             var lastIsStale = !takeOverHud && lastOwner != this && !CustomCollision.PointInShield(playerPos, lastOwner.DetectMatrixOutsideInv);
@@ -317,29 +322,26 @@ namespace DefenseShields
         private bool _toggle2;
         private void UpdateIcon(bool reInforce)
         {
-            //ChargeMgr.ReportSideStatus();
+
             var camera = MyAPIGateway.Session.Camera;
             var newFov = camera.FovWithZoom;
             var aspectRatio = camera.ViewportSize.X / camera.ViewportSize.Y;
 
-            var scaleByAspect = aspectRatio / 2.3707f;
-            var vertOffset = 1 - scaleByAspect;
-            var scaleVertByAspect = MathHelper.Clamp((scaleByAspect * (1 + vertOffset)), 0.9375f, 1);
             if (Session.Instance.Tick180 || Session.Instance.Tick20 && _toggle2)
                 _toggle2 = !_toggle2;
 
             var fov = Math.Tan(newFov * 0.5);
-            var scaleFov = (0.1 * fov);
+            var scaleFov = 0.1 * fov;
             var offset = new Vector2D(Session.Instance.Settings.ClientConfig.ShieldIconPos.X, Session.Instance.Settings.ClientConfig.ShieldIconPos.Y);
             offset.X *= scaleFov * aspectRatio;
-            offset.Y *= (scaleFov / scaleVertByAspect);
+            offset.Y *= scaleFov;
 
             var cameraWorldMatrix = MyAPIGateway.Session.Camera.WorldMatrix;
             var position = Vector3D.Transform(new Vector3D(offset.X, offset.Y, -.1), cameraWorldMatrix);
 
             var left = cameraWorldMatrix.Left;
             var up = cameraWorldMatrix.Up;
-            var scale = (float)(scaleFov * (Session.Instance.Settings.ClientConfig.HudScale * 0.13f)) * scaleByAspect;
+            var scale = (float)(scaleFov * (Session.Instance.Settings.ClientConfig.HudScale * 0.13f));
             var percent = DsState.State.ShieldPercent;
             var icon2FSelect = percent < 99 ? GetIconDmgChargeFloat() : 0;
             var heat = DsState.State.Heat;
@@ -350,10 +352,8 @@ namespace DefenseShields
 
             var mainColor = !DsState.State.Lowered ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(0.25f, 0.25f, 0.25f, 0.25f);
             var heatSinkActive = DsSet.Settings.SinkHeatCount > HeatSinkCount;
-            var maxHpState = (int)Math.Round(DsState.State.MaxHpReductionScaler / 0.05);
+            var maxHpState = (int)Math.Round(DsState.State.MaxHpReductionScaler / 0.1);
 
-            //if (Session.Instance.Tick60 && ((IMyCubeGrid)MyGrid).ControlSystem.IsControlled)
-            //    MyAPIGateway.Utilities.ShowNotification($"{ChargeMgr.HitType}", 1000);
 
             Vector4 color;
             if (reInforce) color = Color.Green;
@@ -361,96 +361,80 @@ namespace DefenseShields
                 color = new Vector4(0.25f, 0.25f, 0.25f, 0.25f);
             else color = GetDamageTypeColor();
 
-            var activeDefense = !reInforce && !DsState.State.Lowered && DsState.State.Online;
-            var shieldBase =  DsSet.Settings.FortifyShield ? Session.Instance.HudIconFortifyShield : Session.Instance.HudIconWhiteShield;
-
-            MyTransparentGeometry.AddBillboardOriented(shieldBase, color, position, left, up, scale, BlendTypeEnum.PostPP);
+            MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudIconWhiteShield, color, position, left, up, scale, BlendTypeEnum.PostPP);
             MyTransparentGeometry.AddBillboardOriented(icon1, Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
 
             int modState;
-            if (ModulatedState(activeDefense, out modState)) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudModulationIcons[modState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
+            if (ModulatedState(out modState)) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudModulationIcons[modState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
             
             int penState;
-            if (PenChance(activeDefense, out penState)) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudPenChanceIcons[penState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
+            if (PenChance(out penState)) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudPenChanceIcons[penState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
 
-            if (activeDefense && heatSinkActive) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudIconVenting, Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
-            if (activeDefense && maxHpState > 0) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudHpLossIcons[maxHpState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
+            if (heatSinkActive) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudIconVenting, Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
+            if (maxHpState > 0) MyTransparentGeometry.AddBillboardOriented(Session.Instance.HudHpLossIcons[maxHpState], Color.White, position, left, up, scale, BlendTypeEnum.PostPP);
+
+            var activeTags = modState >= 0 || penState >= 0 || heatSinkActive || maxHpState > 0;
+
+            if (activeTags)
+                LastActiveTagTick = Session.Instance.Tick;
+
+            var showShuntWheel = Session.Instance.Tick - LastActiveTagTick <= 900;
 
             if (showIcon2 && icon2 != MyStringId.NullOrEmpty) MyTransparentGeometry.AddBillboardOriented(icon2, mainColor, position, left, up, scale, BlendTypeEnum.PostPP);
             if (icon3 != MyStringId.NullOrEmpty) MyTransparentGeometry.AddBillboardOriented(icon3, mainColor, position, left, up, scale, BlendTypeEnum.PostPP);
 
-            if (activeDefense)
+            if (DsState.State.Online && (DsSet.Settings.SideShunting || showShuntWheel))
             {
+                var disabledShunts = !DsSet.Settings.SideShunting && showShuntWheel;
+                var overrideColor = disabledShunts ? new Vector4(0.1f, 0.1f, 0.1f, 0.1f) : Vector4.Zero;
                 foreach (var pair in Session.Instance.ShieldDirectedSidesDraw)
                 {
-                    bool offline;
-                    var countRatio = _count <= 30 ? _count / 30f  : (59 - _count) / 29f;
-                    var healthRatio = ChargeMgr.SideHealthRatio(pair.Key, out offline);
-                    var secondHalf = healthRatio > 0.5f;
-                    var extraBlue = healthRatio * 1.15f;
-                    var atMax = healthRatio >= 1;
+                    //MyAPIGateway.Utilities.ShowNotification(ChargeMgr.SideHealthRatio(pair.Key).ToString(), 16);
 
-                    // Compute the boosted colors using countRatio.
-                    var boostedColors = healthRatio + (extraBlue - healthRatio) * countRatio;
-
-                    var red = !secondHalf ? 1f - healthRatio : !atMax ? boostedColors: healthRatio;
-                    var otherColors = secondHalf && !atMax ? boostedColors : healthRatio;
-                    var healthColor = new Vector4(red, otherColors, otherColors, otherColors);
-                    
-                    var shunted = DsSet.Settings.SideShunting && IsSideShunted(pair.Key);
-                    var sideInfo = DsState.State.ShieldSides[(int)pair.Key];
-
-                    Vector4 sideColor;
-                    if (!shunted && sideInfo.Online)
-                        sideColor = healthColor;
-                    else if (!sideInfo.Online)
-                        sideColor = new Vector4(0.5f, 0, 0.5f, 1);
-                    else
-                        sideColor = _toggle2 ?  new Vector4(1, 0, 0, 1) : new Vector4(0.01f, 0.01f, 0.01f, 0.01f);
+                    var shunted = IsSideShunted(pair.Key);
+                    var sideColor = !shunted ? mainColor : _toggle2 ? new Vector4(1, 0, 0, 1) : new Vector4(0.01f, 0.01f, 0.01f, 0.01f);
+                    if (overrideColor != Vector4.Zero)
+                        sideColor = overrideColor;
 
                     var icon = pair.Value;
 
                     MyTransparentGeometry.AddBillboardOriented(icon, sideColor, position, left, up, scale, BlendTypeEnum.PostPP);
                 }
+            }
 
-                if (modState >= 0)
-                {
-                    var eDmgRatio = ChargeMgr.RawEnergyDamage > 0 ? ChargeMgr.ModEnergyDamage / ChargeMgr.RawEnergyDamage : 0;
-                    var kDmgRatio = ChargeMgr.RawKineticDamage > 0 ? ChargeMgr.ModKineticDamage / ChargeMgr.RawKineticDamage : 0;
-                    var textColor = new Vector4(1, 1, 1, 1);
-                    var textScale = Session.Instance.Settings.ClientConfig.HudScale;
+            if (modState >= 0)
+            {
+                var eDmgRatio = ChargeMgr.RawEnergyDamage > 0 ? ChargeMgr.ModEnergyDamage / ChargeMgr.RawEnergyDamage : 0;
+                var kDmgRatio = ChargeMgr.RawKineticDamage > 0 ? ChargeMgr.ModKineticDamage / ChargeMgr.RawKineticDamage : 0;
+                var textColor = new Vector4(1, 1, 1, 1);
+                var textScale = Session.Instance.Settings.ClientConfig.HudScale;
 
-                    var fontScale = textScale * Session.Instance.ScaleFov;
-                    var fontFocusSize = 8;
-                    var fontSize = (float)Math.Round(fontFocusSize * fontScale, 2);
-                    var fontHeight = 0.75f;
-                    var fontAge = -1;
-                    var fontJustify = Session.Justify.Center;
-                    var fontType = Session.FontType.Shadow;
-                    var elementId1 = 2000;
-                    var elementId2 = 2001;
-                    var textPos1 = Session.Instance.Settings.ClientConfig.ShieldIconPos;
-                    textPos1.Y -= (0.1 * textScale);
-                    var testPos2 = textPos1;
-                    textPos1.X -= (0.0425 * textScale);
-                    testPos2.X += (0.0425 * textScale);
-                    var textLine1 = eDmgRatio.ToString("0.0");
-                    var textLine2 = kDmgRatio.ToString("0.0");
-                    Session.Instance.AddText(text: textLine1, x: (float)textPos1.X, y: (float)textPos1.Y, elementId: elementId1, ttl: fontAge, color: textColor, justify: fontJustify, fontType: fontType, fontSize: fontSize, heightScale: fontHeight);
-                    Session.Instance.AddText(text: textLine2, x: (float)testPos2.X, y: (float)testPos2.Y, elementId: elementId2, ttl: fontAge, color: textColor, justify: fontJustify, fontType: fontType, fontSize: fontSize, heightScale: fontHeight);
-                }
+                var fontScale = textScale * Session.Instance.ScaleFov;
+                var fontFocusSize = 8;
+                var fontSize = (float)Math.Round(fontFocusSize * fontScale, 2);
+                var fontHeight = 0.75f;
+                var fontAge = -1;
+                var fontJustify = Session.Justify.Center;
+                var fontType = Session.FontType.Shadow;
+                var elementId1 = 2000;
+                var elementId2 = 2001;
+                var textPos1 = Session.Instance.Settings.ClientConfig.ShieldIconPos;
+                textPos1.Y -= (0.1 * textScale);
+                var testPos2 = textPos1;
+                textPos1.X -= (0.055 * textScale);
+                testPos2.X += (0.055 * textScale);
+                var textLine1 = eDmgRatio.ToString("0.0");
+                var textLine2 = kDmgRatio.ToString("0.0");
+                Session.Instance.AddText(text: textLine1, x: (float)textPos1.X, y: (float)textPos1.Y, elementId: elementId1, ttl: fontAge, color: textColor, justify: fontJustify, fontType: fontType, fontSize: fontSize, heightScale: fontHeight);
+                Session.Instance.AddText(text: textLine2, x: (float)testPos2.X, y: (float)testPos2.Y, elementId: elementId2, ttl: fontAge, color: textColor, justify: fontJustify, fontType: fontType, fontSize: fontSize, heightScale: fontHeight);
             }
         }
 
-        private bool PenChance(bool active, out int state)
+        private bool PenChance(out int state)
         {
-            state = -1;
-
-            if (!active)
-                return false;
-
-            var penChance = GetPenChance();
+            var penChance = UiPenChance();
             if (penChance <= 0) {
+                state = -1;
                 return false;
             }
 
@@ -468,21 +452,17 @@ namespace DefenseShields
         }
 
         private uint _lastModTick;
-        private bool ModulatedState(bool active, out int state)
+        private bool ModulatedState(out int state)
         {
-            state = -1;
-
-            if (!active)
-                return false;
-
-            if (DsSet.Settings.AutoManage || ShieldComp?.Modulator == null || MyUtils.IsZero(ShieldComp.Modulator.ModState.State.ModulateKinetic - 1) && MyUtils.IsZero(ShieldComp.Modulator.ModState.State.ModulateEnergy - 1))
+            if (ShieldComp?.Modulator == null || MyUtils.IsZero(ShieldComp.Modulator.ModState.State.ModulateKinetic - 1) && MyUtils.IsZero(ShieldComp.Modulator.ModState.State.ModulateEnergy - 1))
             {
-                if (DsSet.Settings.AutoManage || _lastModTick <= 0 || Session.Instance.Tick - _lastModTick > 600)
-                    return false;
+                if (Session.Instance.Tick - _lastModTick <= 600) {
+                    state = 0;
+                    return true;
+                }
 
-                state = 0;
-                return true;
-
+                state = -1;
+                return false;
             }
 
             _lastModTick = Session.Instance.Tick;
@@ -495,10 +475,31 @@ namespace DefenseShields
             return true;
         }
 
+        private double UiPenChance()
+        {
+            var shuntedFaces = ShuntedSideCount();
+            var reinforcedPercent = DsSet.Settings.SideShunting && shuntedFaces > 0 ? DsState.State.ShieldPercent + (shuntedFaces * 8) : DsState.State.ShieldPercent;
+            var heatedEnforcedPercent = reinforcedPercent / (1 + (DsState.State.Heat * 0.005));
+            var penChance = 0f;
+            if (heatedEnforcedPercent < 80)
+            {
+                double x = MathHelperD.Clamp(heatedEnforcedPercent + 20, 0, 100);
+                double a = 0.0001;
+                double b = -0.02;
+                double c = 1.0;
+
+                penChance = (float)((a * Math.Pow(x, 2)) + (b * x) + c);
+            }
+
+            var roundedPenChance = Math.Round(penChance * 100, 3);
+            var reportedPenChance = roundedPenChance == 0 && penChance != 0 ? 0.001 : roundedPenChance;
+            return reportedPenChance;
+        }
+
         internal Vector4 GetDamageTypeColor()
         {
             var nearZero = MyUtils.IsZero(ChargeMgr.AverageNormDamage, 1E-04F);
-            if (!DsSet.Settings.AutoManage && !nearZero)
+            if (!nearZero)
             {
                 var value = Math.Abs(ChargeMgr.AverageNormDamage);
                 var colorShift = 1 - value;  // will be closer to 1 as value gets closer to 0
@@ -512,7 +513,7 @@ namespace DefenseShields
                     return new Vector4(0.1f + (colorShift * 0.9f), 0.1f + (colorShift * 0.9f), 1f + (colorShift * 0f), 0.95f);
                 }
             }
-            return new Vector4(0.25f,0.25f,0.25f, 0.95f);
+            return new Vector4(0.2f, 0.2f, 0.2f, 0.95f);
         }
 
         internal Vector4 GetModulatorColor()
@@ -548,17 +549,17 @@ namespace DefenseShields
 
         private float GetIconDmgChargeFloat()
         {
-            if (ShieldPeakRate <= 0) return 0;
+            if (_shieldPeakRate <= 0) return 0;
             var dps = _runningDamage;
             var hps = _runningHeal;
-            var reduction = ExpChargeReduction > 0 ? ShieldPeakRate / ExpChargeReduction : ShieldPeakRate;
-            if (hps > 0 && dps <= 0) return reduction / ShieldPeakRate;
+            var reduction = _expChargeReduction > 0 ? _shieldPeakRate / _expChargeReduction : _shieldPeakRate;
+            if (hps > 0 && dps <= 0) return reduction / _shieldPeakRate;
             if (DsState.State.ShieldPercent > 99 || (hps <= 0 && dps <= 0)) return 0;
             if (hps <= 0) return 0.0999f;
 
             if (hps > dps)
             {
-                var healing = MathHelper.Clamp(dps / hps, 0, reduction / ShieldPeakRate);
+                var healing = MathHelper.Clamp(dps / hps, 0, reduction / _shieldPeakRate);
                 return healing;
             }
             var damage = hps / dps;

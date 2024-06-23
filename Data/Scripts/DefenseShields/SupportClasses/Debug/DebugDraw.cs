@@ -101,23 +101,6 @@ namespace DefenseShields.Support
             }
         }
 
-        public static void DrawTris(List<Triangle3d> tris)
-        {
-            var lineId = MyStringId.GetOrCompute("Square");
-            var c = Color.Red.ToVector4();
-
-            for (int i = 0; i < tris.Count; i++)
-            {
-                var tri = tris[i];
-
-                MySimpleObjectDraw.DrawLine(tri.V0, tri.V1, lineId, ref c, 0.25f);
-                MySimpleObjectDraw.DrawLine(tri.V0, tri.V2, lineId, ref c, 0.25f);
-                MySimpleObjectDraw.DrawLine(tri.V1, tri.V2, lineId, ref c, 0.25f);
-
-            }
-        }
-
-
         public static void DrawTriVertList(List<Vector3D> list)
         {
             var lineId = MyStringId.GetOrCompute("Square");
@@ -238,7 +221,7 @@ namespace DefenseShields.Support
         public static void DrawBox(MyOrientedBoundingBoxD obb, Color color)
         {
             var box = new BoundingBoxD(-obb.HalfExtent, obb.HalfExtent);
-            var wm = MatrixD.CreateFromTransformScale(obb.Orientation, obb.Center, Vector3D.One * 1.1);
+            var wm = MatrixD.CreateFromTransformScale(obb.Orientation, obb.Center, Vector3D.One);
             MySimpleObjectDraw.DrawTransparentBox(ref wm, ref box, ref color, MySimpleObjectRasterizer.Solid, 1);
         }
 

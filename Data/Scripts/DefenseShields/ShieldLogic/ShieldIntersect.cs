@@ -119,7 +119,7 @@ namespace DefenseShields
                     var sLSpeedLen = sLSpeed.LengthSquared();
                     var sASpeedLen = sASpeed.LengthSquared();
                     var sSpeedLen = sLSpeedLen > sASpeedLen ? sLSpeedLen : sASpeedLen;
-                    var direction = Vector3D.Normalize(entity.PositionComp.WorldAABB.Center - WorldEllipsoidCenter);
+                    var direction = Vector3D.Normalize(entity.PositionComp.WorldAABB.Center - DetectionCenter);
                     var forceData = new MyForceData
                         {Entity = entity, Force = direction * (bPhysics.Mass * 10), MaxSpeed = sSpeedLen + 3};
                     if (!bPhysics.IsStatic)
@@ -299,7 +299,7 @@ namespace DefenseShields
                 ComputeCollisionPhysics(grid, MyGrid, collisionAvg);
             else if (!_isServer) return;
 
-            var damage = ((ds.ShieldMaxChargeRate * ConvToHp) * DsState.State.ModulateKinetic) * 0.01666666666f;
+            var damage = ((ds._shieldMaxChargeRate * ConvToHp) * DsState.State.ModulateKinetic) * 0.01666666666f;
             var shieldEvent = Session.Instance.ShieldEventPool.Get();
             shieldEvent.Init(this, damage, collisionAvg, grid.EntityId);
             Session.Instance.ThreadEvents.Enqueue(shieldEvent);
@@ -421,43 +421,6 @@ namespace DefenseShields
             blocks.ApplyAdditions();
         }
 
-        public static void GetBlocksInsideSphereFastBasic(MyCubeGrid grid, ref BoundingSphereD sphere, List<IMySlimBlock> blocks)
-        {
-            var radius = sphere.Radius;
-            radius *= grid.GridSizeR;
-            var center = grid.WorldToGridInteger(sphere.Center);
-            var gridMin = grid.Min;
-            var gridMax = grid.Max;
-            double radiusSq = radius * radius;
-            int radiusCeil = (int)Math.Ceiling(radius);
-            int i, j, k;
-            Vector3I max2 = Vector3I.Min(Vector3I.One * radiusCeil, gridMax - center);
-            Vector3I min2 = Vector3I.Max(Vector3I.One * -radiusCeil, gridMin - center);
-            for (i = min2.X; i <= max2.X; ++i)
-            {
-                for (j = min2.Y; j <= max2.Y; ++j)
-                {
-                    for (k = min2.Z; k <= max2.Z; ++k)
-                    {
-                        if (i * i + j * j + k * k < radiusSq)
-                        {
-                            MyCube cube;
-                            var vector3I = center + new Vector3I(i, j, k);
-
-                            if (grid.TryGetCube(vector3I, out cube))
-                            {
-                                var slim = (IMySlimBlock)cube.CubeBlock;
-                                if (slim.Position == vector3I)
-                                {
-                                    blocks.Add(slim);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         private void ComputeCollisionPhysics(MyCubeGrid entity1, MyCubeGrid entity2, Vector3D collisionAvg)
         {
             var e1Physics = ((IMyCubeGrid)entity1).Physics;
@@ -480,7 +443,7 @@ namespace DefenseShields
             Vector3 bVelAtPoint;
             e1Physics.GetVelocityAtPointLocal(ref bCollisionCorrection, out bVelAtPoint);
 
-            var sCom = e2IsStatic ? WorldEllipsoidCenter : e2Physics.CenterOfMassWorld;
+            var sCom = e2IsStatic ? DetectionCenter : e2Physics.CenterOfMassWorld;
             var sMassRelation = sMass / bMass;
             var sRelationClamp = MathHelper.Clamp(sMassRelation, 0, 1);
             var sCollisionCorrection = Vector3D.Lerp(sCom, collisionAvg, sRelationClamp);

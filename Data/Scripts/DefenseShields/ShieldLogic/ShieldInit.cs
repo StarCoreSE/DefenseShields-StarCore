@@ -57,7 +57,7 @@ namespace DefenseShields
                     MyGrid.Physics.ForceActivate();
                     if (Session.Enforced.Debug >= 3) Log.Line($"EmitterStartupFailure: Asleep:{Asleep} - MaxPower:{ShieldMaxPower} - {ShieldSphere.Radius} - ShieldId [{Shield.EntityId}]");
                     LosCheckTick = Session.Instance.Tick + 1800;
-                    StateChangeRequest = true;
+                    ShieldChangeState();
                     return;
                 }
                 if (GridIsMobile && ShieldComp.ShipEmitter != null && !ShieldComp.ShipEmitter.EmiState.State.Los) _sendMessage = true;
@@ -193,6 +193,7 @@ namespace DefenseShields
                 _audioReInit = new MySoundPair("Arc_reinitializing");
                 _audioSolidBody = new MySoundPair("Arc_solidbody");
                 _audioOverload = new MySoundPair("Arc_overloaded");
+                _audioEmp = new MySoundPair("Arc_EMP");
                 _audioRemod = new MySoundPair("Arc_remodulating");
                 _audioLos = new MySoundPair("Arc_noLOS");
                 _audioNoPower = new MySoundPair("Arc_insufficientpower");
@@ -260,20 +261,19 @@ namespace DefenseShields
         {
             if (_allInited)
                 ResetEntityTick = _tick + 1800;
-
-
+            
             _allInited = false;
             Warming = false;
             WarmedUp = false;
             _resetEntity = false;
             _checkResourceDist = true;
+
             ResetComp();
-            UpdateRedirectState();
 
             if (_isServer)
             {
                 ComputeCap();
-                StateChangeRequest = true;
+                ShieldChangeState();
             }
 
             if (Session.Enforced.Debug == 3) Log.Line($"ResetEntity: ShieldId [{Shield.EntityId}]");
@@ -351,10 +351,6 @@ namespace DefenseShields
                     DsState.State.GridHalfExtents = Vector3D.Zero;
                     DsState.State.Heat = 0;
                     DsState.State.MaxHpReductionScaler = 0;
-
-                    AutoManage = DsSet.Settings.AutoManage;
-                    if (AutoManage && DsSet.Settings.SideShunting)
-                        DsSet.Settings.SideShunting = false;
                 }
             }
             catch (Exception ex) { Log.Line($"Exception in StorageSetup: {ex}"); }
@@ -595,21 +591,21 @@ namespace DefenseShields
                     if (power != null)
                     {
                         var maxPower = power.MaxOutput;
-                        //if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
-                        //{
-                        //    if (MyUtils.IsEqual(maxPower, 300f))
-                        //    {
-                        //        nerfScaler += (0.6f * value);
-                        //    }
-                        //    else
-                        //    {
-                        //        nerfScaler += (1.25f * value);
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    nerfScaler += (1 * value);
-                        //}
+                        if (sub.GridSizeEnum == MyCubeSize.Large && slim.BlockDefinition != null && _nerfVanillaPower.ContainsKey(slim.BlockDefinition.Id.SubtypeId) && _nerfVanillaPower[slim.BlockDefinition.Id.SubtypeId] == (int) maxPower)
+                        {
+                            if (MyUtils.IsEqual(maxPower, 300f))
+                            {
+                                nerfScaler += (0.6f * value);
+                            }
+                            else
+                            {
+                                nerfScaler += (1.25f * value);
+                            }
+                        }
+                        else
+                        {
+                            nerfScaler += (1 * value);
+                        }
 
                         nerfCount += value;
 

@@ -104,6 +104,7 @@ namespace DefenseShields
         internal bool InThisTerminal => Session.Instance.LastTerminalId == Shield.EntityId;
        
         private const int ReModulationCount = 300;
+        private const int EmpDownCount = 3600;
         private const int PowerNoticeCount = 600;
         private const int CapacitorDrainCount = 60;
         private const int CapacitorStableCount = 600;
@@ -138,8 +139,6 @@ namespace DefenseShields
         private readonly Vector3D[] _resetEntCorners = new Vector3D[8];
         private readonly Vector3D[] _obbCorners = new Vector3D[8];
         private readonly Vector3D[] _obbPoints = new Vector3D[9];
-        private readonly Vector3D[] _triEdges = new Vector3D[3];
-        private readonly Vector3D[] _obbEdges = new Vector3D[3];
         private uint _tick;
         private uint _subTick;
         private uint _funcTick;
@@ -155,8 +154,8 @@ namespace DefenseShields
         private float _powerNeeded;
         private float _otherPower;
         private float _batteryCurrentInput;
-        internal float ShieldPeakRate;
-        internal float ShieldMaxChargeRate;
+        private float _shieldPeakRate;
+        private float _shieldMaxChargeRate;
         private float _damageReadOut;
         private float _shieldMaintaintPower;
         private float _shieldConsumptionRate;
@@ -166,7 +165,7 @@ namespace DefenseShields
         private float _runningHeal;
         private float _sizeScaler;
         private float _shieldTypeRatio = 100f;
-        internal float ExpChargeReduction;
+        private float _expChargeReduction;
         private double _oldEllipsoidAdjust;
         private double _ellipsoidSurfaceArea;
         
@@ -178,6 +177,7 @@ namespace DefenseShields
         private int _powerNoticeLoop;
         private int _capacitorLoop;
         private int _overLoadLoop = -1;
+        private int _empOverLoadLoop = -1;
         private int _reModulationLoop = -1;
         private int _heatCycle = -1;
         private int _fallbackCycle;
@@ -192,14 +192,14 @@ namespace DefenseShields
         private int _clientMessageCount;
         private long _gridOwnerId = -1;
         private long _controllerOwnerId = -1;
-        internal bool AutoManage;
-        internal bool StateChangeRequest;
+
         private bool _firstLoop = true;
         private bool _enablePhysics = true;
         private bool _shieldCapped;
         private bool _needPhysics;
         private bool _allInited;
         private bool _containerInited;
+        private bool _forceBufferSync;
         private bool _comingOnline;
         private bool _tick20;
         private bool _tick30;
@@ -209,6 +209,7 @@ namespace DefenseShields
         private bool _tick600;
         private bool _tick1800;
         private bool _resetEntity;
+        private bool _empOverLoad;
         private bool _isDedicated;
         private bool _mpActive;
         private bool _isServer;
@@ -248,12 +249,12 @@ namespace DefenseShields
         internal Quaternion SQuaternion;
         internal int LastIndex;
         internal long LastAttackerId = -1;
-        internal double IncreaseO2ByFPercent;
-        internal bool EwarProtection;
         internal readonly float[] AttackerDamage = new float[100];
         internal readonly uint[] AttackerTimes = new uint[100];
         internal readonly Queue<long> AttackerLast = new Queue<long>(100);
         internal readonly Dictionary<long, int> AttackerLookupCache = new Dictionary<long, int>();
+
+        private Color _oldPercentColor = Color.Transparent;
 
         private MyResourceSinkInfo _resourceInfo;
         private MyResourceSinkComponent _sink;
@@ -264,6 +265,7 @@ namespace DefenseShields
         private MySoundPair _audioReInit;
         private MySoundPair _audioSolidBody;
         private MySoundPair _audioOverload;
+        private MySoundPair _audioEmp;
         private MySoundPair _audioRemod;
         private MySoundPair _audioLos;
         private MySoundPair _audioNoPower;
@@ -310,11 +312,14 @@ namespace DefenseShields
             EmitterInit,
             FieldBlocked,
             OverLoad,
+            EmpOverLoad,
             Remodulate,
             NoPower,
             NoLos
         }
 
+        public int KineticCoolDown { get; internal set; } = -1;
+        public int EnergyCoolDown { get; internal set; } = -1;
         public int HitCoolDown { get; private set; } = -11;
         public int DtreeProxyId { get; set; } = -1;
 
@@ -338,6 +343,8 @@ namespace DefenseShields
         internal uint EffectsCleanTick { get; set; }
         internal uint InitTick { get; set; }
         internal uint ShapeChangeTick { get; set; }
+        internal uint LastHeatSinkTick { get; set; }
+        internal uint LastActiveTagTick { get; set; }
         internal uint ClientHeatSinkResetTick { get; set; }
         internal uint LastModulateChangeTick { get; set; }
         internal float ShieldChargeRate { get; set; }
@@ -361,14 +368,14 @@ namespace DefenseShields
         internal bool FitChanged { get; set; }
         internal bool GridIsMobile { get; set; }
         internal bool SettingsUpdated { get; set; }
-        internal bool SettingsChangeRequest { get; set; }
+        internal bool ClientUiUpdate { get; set; }
         internal bool IsStatic { get; set; }
         internal bool EntCleanUpTime { get; set; }
         internal bool ShieldActive { get; set; }
         internal bool ClientInitPacket { get; set; }
 
         internal Vector3D MyGridCenter { get; set; }
-        internal Vector3D WorldEllipsoidCenter { get; set; }
+        internal Vector3D DetectionCenter { get; set; }
 
         internal MatrixD DetectMatrixOutsideInv;
         internal MatrixD ShieldShapeMatrix { get; set; }

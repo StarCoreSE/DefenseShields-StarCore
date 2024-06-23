@@ -352,13 +352,12 @@ namespace DefenseShields
 
         private void AppendingCustomInfo(IMyTerminalBlock block, StringBuilder stringBuilder)
         {
-            var autoManage = ShieldComp?.DefenseShields != null && ShieldComp.DefenseShields.DsSet.Settings.AutoManage;
             stringBuilder.Append($"{Localization.GetText("InfoModulator[Online]")}: " + ModState.State.Online +
                                  $"\n{Localization.GetText("InfoModulator[Remodulating Shield]")}: " + ModState.State.Link +
                                  "\n" +
                                  $"\n{Localization.GetText("InfoModulator[Backup Modulator]")}: " + ModState.State.Backup +
-                                 $"\n{Localization.GetText("InfoModulator[Energy Damage]")}: " + Math.Round(Math.Abs(autoManage ? 1 : ModState.State.ModulateEnergy), 2).ToString("0.00") + "x" +
-                                 $"\n{Localization.GetText("InfoModulator[Kinetic Damage]")}: " + Math.Round(Math.Abs(autoManage ? 1 : ModState.State.ModulateKinetic), 2).ToString("0.00") + "x" +
+                                 $"\n{Localization.GetText("InfoModulator[Energy Damage]")}: " + Math.Round(Math.Abs(ModState.State.ModulateEnergy), 2).ToString("0.00") + "x" +
+                                 $"\n{Localization.GetText("InfoModulator[Kinetic Damage]")}: " + Math.Round(Math.Abs(ModState.State.ModulateKinetic), 2).ToString("0.00") + "x" +
                                  $"\n{Localization.GetText("InfoModulator[Emp Protection]")}: " + ModSet.Settings.EmpEnabled);
         }
 

@@ -81,7 +81,7 @@ namespace DefenseShields.Support
             if (Session.Instance.MpActive)
             {
                 Shield.AddShieldHit(Entity.EntityId, 1, Session.Instance.MPKinetic, null, false, Entity.PositionComp.WorldVolume.Center);
-                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive,  Shield.MyCube.EntityId, null);
+                floater.DoDamage(9999999, Session.Instance.MpIgnoreDamage, Session.Instance.MpActive,  Shield.MyCube.EntityId,null);
             }
             else
             {

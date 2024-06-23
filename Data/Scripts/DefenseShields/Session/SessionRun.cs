@@ -147,7 +147,6 @@
 
                 CurrentFovWithZoom = newFov;
                 AspectRatio = Camera.ViewportSize.X / Camera.ViewportSize.Y;
-
                 AspectRatioInv = Camera.ViewportSize.Y / Camera.ViewportSize.X;
 
                 ScaleFov = Math.Tan(CurrentFovWithZoom * 0.5);
@@ -170,9 +169,20 @@
 
                     if (s.DsState.State.Suspended) continue;
 
+
+                    if (s.KineticCoolDown > -1) {
+                        s.KineticCoolDown++;
+                        if (s.KineticCoolDown == 6) s.KineticCoolDown = -1;
+                    }
+
+                    if (s.EnergyCoolDown > -1) {
+                        s.EnergyCoolDown++;
+                        if (s.EnergyCoolDown == 9) s.EnergyCoolDown = -1;
+                    }
+
                     if (!s.WarmedUp || !IsServer && !s.ClientInitPacket || s.DsState.State.Lowered || s.DsState.State.Sleeping || s.DsState.State.Suspended || !s.DsState.State.EmitterLos) continue;
 
-                    var sp = new BoundingSphereD(s.WorldEllipsoidCenter, s.BoundingRange);
+                    var sp = new BoundingSphereD(s.DetectionCenter, s.BoundingRange);
                     if (!MyAPIGateway.Session.Camera.IsInFrustum(ref sp))
                     {
                         SphereOnCamera[i] = false;

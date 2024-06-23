@@ -5,9 +5,7 @@ using VRageMath;
 
 namespace DefenseShields
 {
-    using Sandbox.Game;
     using Support;
-    using static VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GameDefinition;
 
     public partial class DefenseShields
     {
@@ -20,23 +18,14 @@ namespace DefenseShields
             if (heat >= 10) ShieldChargeRate = 0;
             else
             {
-                ExpChargeReduction = ExpChargeReductions[heat];
-                ShieldChargeRate /= ExpChargeReduction;
+                _expChargeReduction = ExpChargeReductions[heat];
+                ShieldChargeRate /= _expChargeReduction;
             }
         }
 
         private void StepDamageState()
         {
-            if (_isServer)
-            {
-                Heating();
-
-                if (DsSet.Settings.AutoManage && DsState.State.MaxHpReductionScaler < 0.94 && HeatSinkCount >= DsSet.Settings.SinkHeatCount && (DsState.State.Heat >= 90 || DsState.State.Heat >= 30 && GetPenChance() > 0)) {
-                    SettingsUpdated = true;
-                    SettingsChangeRequest = true;
-                    DsSet.Settings.SinkHeatCount++;
-                }
-            }
+            if (_isServer) Heating();
 
             if (_tick30)
             {
@@ -47,9 +36,6 @@ namespace DefenseShields
             }
         }
 
-        private bool _heatSinkEffectTriggered = false;
-        private int _heatSinkEffectTimer = 0;
-
         private void Heating()
         {
             if (ChargeMgr.AbsorbHeat > 0)
@@ -58,21 +44,21 @@ namespace DefenseShields
             var oldMaxHpScaler = DsState.State.MaxHpReductionScaler;
             var heatSinkActive = DsSet.Settings.SinkHeatCount > HeatSinkCount;
 
-            if ((heatSinkActive || _sinkCount != 0) && oldMaxHpScaler <= 0.95)
+
+            if ((heatSinkActive || _sinkCount != 0) && oldMaxHpScaler <= 0.90)
                 DecreaseHeatLevel();
-            else if (!heatSinkActive && oldMaxHpScaler > 0 && _tick - _lastHeatTick >= 600)
+            else if (!heatSinkActive && oldMaxHpScaler > 0 && _currentHeatStep == 0 && _tick - _lastHeatTick >= 1200)
                 IncreaseMaxHealth();
 
             HeatTick();
 
             var hp = ShieldMaxCharge * ConvToHp;
             var oldHeat = DsState.State.Heat;
-            var rawHeatScale = DsSet.Settings.AutoManage ? Session.Enforced.HeatScaler * 2 : Session.Enforced.HeatScaler;
 
-            var heatScale = (ShieldMode == ShieldType.Station || DsSet.Settings.FortifyShield) && DsState.State.Enhancer ? rawHeatScale * 2.75f : rawHeatScale;
+            var heatScale = (ShieldMode == ShieldType.Station || DsSet.Settings.FortifyShield) && DsState.State.Enhancer ? Session.Enforced.HeatScaler * 2.75f : Session.Enforced.HeatScaler * 1f;
             var thresholdAmount = heatScale * _heatScaleHp;
             var nextThreshold = hp * thresholdAmount * (_currentHeatStep + 1);
-
+            
             var scaledOverHeat = OverHeat / _heatScaleTime;
             var scaledHeatingSteps = HeatingStep / _heatScaleTime;
 
@@ -103,35 +89,13 @@ namespace DefenseShields
             if (fallbackTime)
                 FallBack();
 
-            if (oldHeat != DsState.State.Heat || !MyUtils.IsEqual(oldMaxHpScaler, DsState.State.MaxHpReductionScaler))
-            {
-                StateChangeRequest = true;
-            }
-
-            if (heatSinkActive)
-            {
-                if (!_heatSinkEffectTriggered || _heatSinkEffectTimer >= 60) // Check if it's not triggered or 1 second has passed
-                {
-                    MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
-                    MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);
-                    _heatSinkEffectTriggered = true;
-                    _heatSinkEffectTimer = 0; // Reset the timer
-                }
-                else
-                {
-                    _heatSinkEffectTimer++; // Increment the timer
-                }
-            }
-            else
-            {
-                _heatSinkEffectTriggered = false;
-                _heatSinkEffectTimer = 0; // Reset the timer
-            }
+            if (oldHeat != DsState.State.Heat || !MyUtils.IsEqual(oldMaxHpScaler, DsState.State.MaxHpReductionScaler)) 
+                ShieldChangeState();
         }
 
         private void HeatTick()
         {
-            var ewarProt = DsState.State.Enhancer && ShieldComp?.Modulator?.ModSet != null && ShieldComp.Modulator.ModSet.Settings.EmpEnabled && ShieldMode != ShieldType.Station;
+            var ewarProt = DsState.State.EwarProtection && ShieldMode != ShieldType.Station;
 
             if (_tick30 && ChargeMgr.AbsorbHeat > 0 && _heatCycle == -1)
                 _heatCycle = 0;
@@ -199,14 +163,14 @@ namespace DefenseShields
 
             _sinkCount = 0;
             HeatSinkCount = DsSet.Settings.SinkHeatCount;
-            var hpLoss = DsSet.Settings.FortifyShield ? 0.1 : 0.05;
-            DsState.State.MaxHpReductionScaler = (float)MathHelper.Clamp(Math.Round(DsState.State.MaxHpReductionScaler + hpLoss, 3), 0.05, 0.95);
+            var hpLoss = DsSet.Settings.FortifyShield ? 0.2 : 0.1;
+            DsState.State.MaxHpReductionScaler = (float)MathHelper.Clamp(Math.Round(DsState.State.MaxHpReductionScaler + hpLoss, 2), 0.10, 0.90);
         }
 
         public void IncreaseMaxHealth()
         {
             if (DsState.State.ShieldPercent >= 100)
-                DsState.State.MaxHpReductionScaler = (float) MathHelper.Clamp(Math.Round(DsState.State.MaxHpReductionScaler - 0.05, 3), 0, 0.90);
+                DsState.State.MaxHpReductionScaler = (float) MathHelper.Clamp(Math.Round(DsState.State.MaxHpReductionScaler - 0.10, 2), 0, 0.80);
         }
 
         private void Overload(float hp, float thresholdAmount, float nextThreshold)

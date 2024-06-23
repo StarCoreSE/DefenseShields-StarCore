@@ -1,6 +1,4 @@
-﻿using VRage.Game.ModAPI;
-
-namespace DefenseShields.Support
+﻿namespace DefenseShields.Support
 {
     using System;
     using System.Collections.Generic;
@@ -132,6 +130,7 @@ namespace DefenseShields.Support
             private Vector3D[] _normalBuffer;
             private int[] _triColorBuffer;
 
+            private Vector3D _refreshPoint;
             private MatrixD _matrix;
 
             private int _mainLoop = -1;
@@ -142,9 +141,12 @@ namespace DefenseShields.Support
             private int _refreshDrawStep;
             private int _lod;
 
+            private Color _activeColor = Color.Transparent;
+
             private bool _impact;
             private bool _refresh;
             private bool _active;
+            private bool _flash;
 
             private static readonly MyStringId _impactRingMaterial = MyStringId.GetOrCompute("DS_ImpactRing");
 
@@ -195,26 +197,6 @@ namespace DefenseShields.Support
                 }
             }
 
-            private readonly Vector3D[] _lowPhysicsArrayCache = new Vector3D[162];
-            internal void ReturnLowPhysicsTris(MatrixD matrix, int lod, List<Triangle3d> physicsTris)
-            {
-                var indexBufferArray = _backing.IndexBuffer[lod];
-                for (var i = 0; i < _lowPhysicsArrayCache.Length; i++)
-                {
-                    Vector3D tmp = _backing.VertexBuffer[i];
-                    Vector3D.TransformNoProjection(ref tmp, ref matrix, out _lowPhysicsArrayCache[i]);
-                }
-
-                for (int i = 0; i < indexBufferArray.Length; i += 3)
-                {
-                    var vn0 = indexBufferArray[i];
-                    var vn1 = indexBufferArray[i + 1];
-                    var vn2 = indexBufferArray[i + 2];
-
-                    physicsTris.Add(new Triangle3d(_lowPhysicsArrayCache[vn0], _lowPhysicsArrayCache[vn1], _lowPhysicsArrayCache[vn2]));
-                }
-            }
-
             internal void ComputeEffects(DefenseShields shield, Vector3D impactPos, bool sphereOnCamera, int prevLod, float shieldPercent, bool activeVisible, bool hitWave)
             {
                 Shield = shield;
@@ -236,9 +218,14 @@ namespace DefenseShields.Support
                     }
                 }
 
+                _flash = shieldPercent <= 10;
+                if (_flash && _mainLoop < 30) shieldPercent += 10;
+
+                var newActiveColor = UtilsStatic.GetShieldColorFromFloat(shieldPercent);
+                _activeColor = newActiveColor;
 
                 ImpactPosState = impactPos;
-                _active = activeVisible;
+                _active = activeVisible && _activeColor != Session.Instance.Color90;
 
                 if (prevLod != _lod)
                 {
@@ -263,14 +250,12 @@ namespace DefenseShields.Support
                     Vector3D impactNormal = Vector3D.Normalize(impactPosition - _matrix.Translation);
                     Vector3D impactForwardVec = Vector3D.Normalize(Vector3D.Cross(impactNormal, Vector3D.Forward));
                     MatrixD impactRingPosTransform = MatrixD.Transpose(MatrixD.CreateWorld(Vector3D.Zero, impactForwardVec, impactNormal));
-                    var kinetic = Shield != null && Shield.ChargeMgr.HitType == DefenseShields.HitType.Kinetic;
-                    var damageColor = kinetic ? new Vector4(0.1f, 0.1f, 1f, 1f) : new Vector4(1f, 0.5f, 0.1f, 1f);
+
                     var ring = Session.Instance.RingPool.Get();
 
                     ring.LodLevel = lod;
                     ring.AnimationStartClock = 1;
                     ring.ImpactPosition = impactPosition;
-                    ring.ImpactColor = damageColor;
                     ring.ImpactMaxDistance = lengthLimit;
                     ring.RingTriangles.Clear();
 
@@ -386,43 +371,31 @@ namespace DefenseShields.Support
                     if (_lCount == 10)
                     {
                         _lCount = 0;
-
                         if ((_longerLoop == 2 && Random.Next(0, 3) == 2))
-                            _refresh = true;
-
+                        {
+                            if (Shield?.ShellActive != null)
+                            {
+                                _refresh = true;
+                                var localImpacts = Shield.ShellActive.PositionComp.LocalMatrix.Forward;
+                                localImpacts.Normalize();
+                                _refreshPoint = localImpacts;
+                            }
+                        }
                         _longerLoop++;
                         if (_longerLoop == 6) _longerLoop = 0;
                     }
                 }
                 if (ImpactPosState != Vector3D.NegativeInfinity) ComputeImpacts();
-                else if (Shield != null && _mainLoop == 30) 
+                else if (_flash && _mainLoop == 0 || _mainLoop == 30) 
                 {
                     for (int i = 0; i < _hitFaces.Count; i++)
-                    {
-                        var face = _hitFaces[i];
-                        var faceId = (int) face;
-                        var faceSubPart = _sidePartArray[faceId];
-                        bool offline;
-                        var healthPerc = Shield.ChargeMgr.SideHealthRatio(Shield.RealSideStates[face].Side, out offline);
-
-                        var doubleRatio = healthPerc * 2f;
-                        var transition1 = 0.25f;
-                        var transition1Step = transition1 * 2;
-                        var red = healthPerc < 1 ? 1 : healthPerc;
-                        var green = healthPerc < transition1 ? 0 : MathHelper.Clamp(doubleRatio - transition1Step, 0, healthPerc);
-                        var blue = healthPerc < transition1 ? 0 : MathHelper.Clamp(doubleRatio - transition1Step, 0, 255);
-                        var healthColor = new Color(red, green, blue, 255);
-                        var color = !offline ? healthColor : new Color(0.125f, 0, 0.125f, 255);
-
-                        if (healthPerc <= 0.9)
-                            UpdateHealthColor(faceSubPart, color);
-                    }
+                        UpdateHealthColor(_sidePartArray[(int)_hitFaces[i]]);
                 }
 
                 if (_impact)
                 {
                     _impact = false;
-                    if (_active && Shield != null) HitFace();
+                    if (_active) HitFace();
 
                     ImpactsFinished = false;
                     _refresh = false;
@@ -434,13 +407,15 @@ namespace DefenseShields.Support
                 if (!ImpactsFinished) UpdateImpactState();
             }
             
-            internal void Draw(uint renderId, bool sphereOnCamera)
+            internal void Draw(uint renderId, bool sphereOnCamera, DefenseShields shield)
             {
                 try
                 {
                     var ib = _backing.IndexBuffer[_lod];
 
                     int index = 0;
+                    var damageColor = shield.GetModulatorColor();
+                    damageColor.W = 0.5f;
 
                     while (index < ImpactRings.Count)
                     {
@@ -450,24 +425,26 @@ namespace DefenseShields.Support
 
                         float progress;
                         float ringIntesity;
+                        float ringSize;
                         float ringSizeCofficient;
 
                         if (impactRingData.AnimationStartClock <= ImpactRingExpandTicks)
                         {
                             progress = ((float)impactRingData.AnimationStartClock / ImpactRingExpandTicks) * 0.75f + 0.25f;
                             ringIntesity = (progress * 0.5f) + 0.5f;
-                            var ringSize = 1 - ((1 - progress) * (1 - progress));
+                            ringSize = 1 - ((1 - progress) * (1 - progress));
                             ringSizeCofficient = 0.5f / ringSize;
                         }
                         else
                         {
                             progress = 1 - (((float)impactRingData.AnimationStartClock - ImpactRingExpandTicks) / ImpactRingFadeTicks);
                             ringIntesity = (progress * 0.5f) + 0.5f;
+                            ringSize = 1;
                             ringSizeCofficient = 0.5f;
                         }
 
                         impactRingData.AnimationStartClock++;
-                        var damageColor = impactRingData.ImpactColor;
+
 
                         var v4 = new Vector4
                         {
@@ -545,32 +522,33 @@ namespace DefenseShields.Support
 
             private void UpdateImpactState()
             {
-                for (int i = 0; i < 6; i++)
+                var lengthMulti = 1;
+                if (_flash) lengthMulti = 3;
+
+                for (int i = 0; i < _sideLoops.Length; i++)
                 {
-                    bool offline = false;
-                    var healthPerc = Shield != null ? Shield.ChargeMgr.SideHealthRatio(Shield.RealSideStates[(Session.ShieldSides)i].Side, out offline) * 100 : 100;
-                    var lengthMulti = healthPerc <= 10 ? 3 : 1;
-
-                    if (_impactPos[i] != Vector3D.NegativeInfinity)
-                        _impactCnt[i]++;
-
-                    if (_impactCnt[i] >= (ImpactSteps * lengthMulti) + 1 && !offline)
-                    {
-                        _impactCnt[i] = 0;
-                        _impactPos[i] = Vector3D.NegativeInfinity;
-                        _localImpacts[i] = Vector3D.NegativeInfinity;
-                    }
-
                     if (_sideLoops[i] != 0) _sideLoops[i]++;
                     else continue;
 
-                    if (_sideLoops[i] >= (SideSteps * lengthMulti) + 1 && !offline)
+                    if (_sideLoops[i] >= (SideSteps * lengthMulti) + 1)
                     {
                         _sidePartArray[i].Render.UpdateRenderObject(false);
                         _sideLoops[i] = 0;
                     }
                 }
-
+                for (int i = 0; i < _impactCnt.Length; i++)
+                {
+                    if (_impactPos[i] != Vector3D.NegativeInfinity)
+                    {
+                        _impactCnt[i]++;
+                    }
+                    if (_impactCnt[i] >= (ImpactSteps * lengthMulti)+ 1)
+                    {
+                        _impactCnt[i] = 0;
+                        _impactPos[i] = Vector3D.NegativeInfinity;
+                        _localImpacts[i] = Vector3D.NegativeInfinity;
+                    }
+                }
                 if (_impactCnt[0] == 0 && _impactCnt[1] == 0 && _impactCnt[2] == 0 && _impactCnt[3] == 0 && _impactCnt[4] == 0 && _impactCnt[5] == 0)
                 {
                     Shield?.ShellActive?.Render.UpdateRenderObject(false);
@@ -601,27 +579,9 @@ namespace DefenseShields.Support
                 GetIntersectingFace(_matrix, impactTransNorm, _hitFaces);
                 foreach (var face in _hitFaces)
                 {
-                    bool offline;
-                    var healthPerc = Shield.ChargeMgr.SideHealthRatio(Shield.RealSideStates[face].Side, out offline);
-
-                    var doubleRatio = healthPerc * 2f;
-                    var transition1 = 0.25f;
-                    var transition1Step = transition1 * 2;
-                    var red = healthPerc < 1 ? 1 : healthPerc;
-                    var green = healthPerc < transition1 ? 0 : MathHelper.Clamp(doubleRatio - transition1Step, 0, healthPerc);
-                    var blue = healthPerc < transition1 ? 0 : MathHelper.Clamp(doubleRatio - transition1Step, 0, 255);
-                    var healthColor = new Color(red, green, blue, 255);
-                    var color = !offline ? healthColor : new Color(0.125f, 0, 0.125f, 255);
-                    //if (((IMyCubeGrid)Shield.MyGrid).ControlSystem.IsControlled)
-                    //    Log.Line($"HitFace:{color}");
-
-                    if (healthPerc <= 0.9)
-                    {
-                        _sideLoops[(int)face] = 1;
-                        var faceSubPart = _sidePartArray[(int)face];
-                        faceSubPart.Render.UpdateRenderObject(true);
-                        UpdateHealthColor(faceSubPart, color);
-                    }
+                    _sideLoops[(int)face] = 1;
+                    _sidePartArray[(int)face].Render.UpdateRenderObject(true);
+                    UpdateHealthColor(_sidePartArray[(int)face]);
                 }
             }
 
@@ -685,9 +645,9 @@ namespace DefenseShields.Support
                 return a.Dot(b) / b.LengthSquared() * b;
             }
 
-            private void UpdateHealthColor(MyEntitySubpart shellSide, Color color)
+            private void UpdateHealthColor(MyEntitySubpart shellSide)
             {
-                shellSide.SetEmissiveParts(ShieldHealthEmissive, color, 100f);
+                shellSide.SetEmissiveParts(ShieldHealthEmissive, _activeColor, 100f);
             }
         }
     }
@@ -698,7 +658,6 @@ namespace DefenseShields.Support
         public readonly List<TriangleData> RingTriangles = new List<TriangleData>();
         public int AnimationStartClock;
         public Vector3D ImpactPosition;
-        public Vector4 ImpactColor;
         public double ImpactMaxDistance;
     }
 

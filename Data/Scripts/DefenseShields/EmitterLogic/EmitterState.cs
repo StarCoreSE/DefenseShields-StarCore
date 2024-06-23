@@ -251,7 +251,11 @@ namespace DefenseShields
 
         private void CheckEmitter(IMyTerminalBlock myTerminalBlock)
         {
-            if (myTerminalBlock.IsWorking && ShieldComp != null) ShieldComp.CheckEmitters = true;
+            try
+            {
+                if (myTerminalBlock.IsWorking && ShieldComp != null) ShieldComp.CheckEmitters = true;
+            }
+            catch (Exception ex) { Log.Line($"Exception in CheckEmitter: {ex}"); }
         }
 
         private void SetEmitterType()

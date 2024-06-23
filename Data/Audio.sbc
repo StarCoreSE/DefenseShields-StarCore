@@ -49,23 +49,7 @@
       </Wave>
     </Waves>
   </Sound>
-
-    <Sound>
-      <Id>
-        <TypeId>MyObjectBuilder_AudioDefinition</TypeId>
-        <SubtypeId>HeatSinkSound</SubtypeId>
-      </Id>
-      <Category>BLOCK</Category>
-      <MaxDistance>1000</MaxDistance>
-      <Volume>1</Volume>
-      <Loopable>true</Loopable>
-      <SoundLimit>4</SoundLimit>
-      <Waves>
-        <Wave Type="D3">
-          <Start>Audio\heatsinksound.wav</Start>
-        </Wave>
-      </Waves>
-    </Sound>    
+  
 
     <Sound>
       <Id>

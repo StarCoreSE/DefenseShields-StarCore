@@ -14,10 +14,6 @@ namespace DefenseShields.Support
                     {
                         { "TerminalHeatSink", "Heat Sink" },
                         { "TerminalHeatSinkTooltip", "Sink shield heat into emitter, lowering heat and hp" },
-                        { "TerminalAutoManageTitle", "Automatic Management" },
-                        { "TerminalAutoManageTooltip", "When enabled shields will auto self manage, but peak capabiltiies are reduced vs manual" },
-                        { "TerminalSwitchOn", "On" },
-                        { "TerminalSwitchOff", "Off" },
                         { "TerminalSwitchUp", "Up" },
                         { "TerminalSwitchDown", "Down" },
                         { "TerminalSwitchPush", "Push" },
@@ -328,12 +324,8 @@ namespace DefenseShields.Support
                 {
                     MyLanguagesEnum.ChineseChina, new Dictionary<string, string>
                     {
-                        { "TerminalSwitchOn", "在" },
-                        { "TerminalSwitchOff", "离开" },
                         { "TerminalSwitchUp", "启用" },
                         { "TerminalSwitchDown", "停用" },
-                        { "TerminalAutoManageTitle", "自动屏蔽管理" },
-                        { "TerminalAutoManageTooltip", "启用后，防护罩将自动管理自我，但会牺牲其峰值能力" },
                         { "TerminalSwitchPush", "推" },
                         { "TerminalSwitchPull", "拉" },
                         { "TerminalPasswordTitle", "护盾接入频率" },

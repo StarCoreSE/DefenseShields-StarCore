@@ -270,7 +270,7 @@ namespace DefenseShields
                         {
                             var entPast = -Vector3D.Normalize(entPhysics.LinearVelocity) * 6;
                             var entTestLoc = ent.PositionComp.WorldVolume.Center + entPast;
-                            var centerStep = -Vector3D.Normalize(entTestLoc - WorldEllipsoidCenter) * 2f;
+                            var centerStep = -Vector3D.Normalize(entTestLoc - DetectionCenter) * 2f;
                             var counterDrift = centerStep + entTestLoc;
                             if (CustomCollision.PointInShield(counterDrift, DetectMatrixOutsideInv))
                             {

@@ -1,8 +1,10 @@
-﻿using System;
+﻿using VRage.ModAPI;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Sandbox.Common.ObjectBuilders;
+using Sandbox.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.EntityComponents;
@@ -23,7 +25,7 @@ namespace DefenseShields.Support
         public static void PrepConfigFile()
         {
             const int BaseScaler = 175;
-            const float HeatScaler = 0.001f;
+            const float HeatScaler = 0.0005f;
             const float Unused = 0f;
             const int StationRatio = 100;
             const int LargeShipRate = 100;
@@ -32,7 +34,7 @@ namespace DefenseShields.Support
             const int DisableEntityBarrier = 0;
             const int Debug = 1;
             const int SuperWeapons = 1;
-            const int Version = 92;
+            const int Version = 90;
             const float BlockScaler = 1f;
             const float PowerScaler = 1f;
             const float SizeScaler = 7.5f;
@@ -42,10 +44,6 @@ namespace DefenseShields.Support
             const int DisableBlockDamage = 0;
             const int DisableLineOfSight = 1;
             const int OverloadTime = 2700;
-            const float MaxHP = float.MaxValue;
-            const float MinHP = 0f;
-            const float MaxRecharge = float.MaxValue;
-            const float MinRecharge = 0f;
 
             var dsCfgExists = MyAPIGateway.Utilities.FileExistsInGlobalStorage("DefenseShields.cfg");
             if (dsCfgExists)
@@ -53,14 +51,12 @@ namespace DefenseShields.Support
                 var unPackCfg = MyAPIGateway.Utilities.ReadFileInGlobalStorage("DefenseShields.cfg");
                 var unPackedData = MyAPIGateway.Utilities.SerializeFromXML<DefenseShieldsEnforcement>(unPackCfg.ReadToEnd());
 
-                var invalidValue = unPackedData.HpsEfficiency <= 0 || unPackedData.BaseScaler < 1 || unPackedData.MaintenanceCost <= 0 || unPackedData.MaxHP < 1 || unPackedData.MaxRecharge < 1;
+                var invalidValue = unPackedData.HpsEfficiency <= 0 || unPackedData.BaseScaler < 1 || unPackedData.MaintenanceCost <= 0;
                 if (invalidValue)
                 {
                     if (unPackedData.HpsEfficiency <= 0) unPackedData.HpsEfficiency = HpsEfficiency;
                     if (unPackedData.BaseScaler < 1) unPackedData.BaseScaler = BaseScaler;
                     if (unPackedData.MaintenanceCost <= 0) unPackedData.MaintenanceCost = MaintenanceCost;
-                    if (unPackedData.MaxHP < 1) unPackedData.MaxHP = MaxHP;
-                    if (unPackedData.MaxRecharge < 1) unPackedData.MaxRecharge = MaxRecharge;
                 }
                 if (unPackedData.Version == Version && !invalidValue) return;
 
@@ -88,42 +84,41 @@ namespace DefenseShields.Support
                 Session.Enforced.DisableLineOfSight = !unPackedData.DisableLineOfSight.Equals(-1) ? unPackedData.DisableLineOfSight : DisableLineOfSight;
                 Session.Enforced.OverloadTime = !unPackedData.OverloadTime.Equals(-1) ? unPackedData.OverloadTime : OverloadTime;
 
-                Session.Enforced.MaxHP = !unPackedData.MaxHP.Equals(-1) ? unPackedData.MaxHP : MaxHP;
-                Session.Enforced.MinHP = !unPackedData.MinHP.Equals(-1) ? unPackedData.MinHP : MinHP;
-                Session.Enforced.MaxRecharge = !unPackedData.MaxRecharge.Equals(-1) ? unPackedData.MaxRecharge : MaxRecharge;
-                Session.Enforced.MinRecharge = !unPackedData.MinRecharge.Equals(-1) ? unPackedData.MinRecharge : MinRecharge;
-
-                if (unPackedData.Version < 92)
-                {
-                    Session.Enforced.MaxHP = MaxHP;
-                    Session.Enforced.MinHP = MinHP;
-                    Session.Enforced.MaxRecharge = MaxRecharge;
-                    Session.Enforced.MinRecharge = MinRecharge;
-                }
-
-                if (unPackedData.Version <= 90)
+                if (unPackedData.Version <= 89)
                 {
                     Session.Enforced.HeatScaler = HeatScaler;
+                }
+
+                if (unPackedData.Version <= 88 || Session.Enforced.MwPerCell <= 0)
+                {
                     Session.Enforced.MwPerCell = PowerCellMw;
                     Session.Enforced.HpsEfficiency = HpsEfficiency;
-                    Session.Enforced.PowerScaler = PowerScaler;
-                    Session.Enforced.SizeScaler = SizeScaler;
-                    Session.Enforced.StationRatio = StationRatio;
-                    Session.Enforced.LargeShipRatio = LargeShipRate;
-                    Session.Enforced.SmallShipRatio = SmallShipRatio;
-                    Session.Enforced.MaintenanceCost = MaintenanceCost;
-                    Session.Enforced.BlockScaler = BlockScaler;
-                    Session.Enforced.OverloadTime = OverloadTime;
                 }
 
                 if (unPackedData.Version <= 85)
                     Session.Enforced.DisableLineOfSight = DisableLineOfSight;
 
-                if (Session.Enforced.BaseScaler == 10)
+                if (unPackedData.Version <= 82)
                 {
-                    Session.Enforced.MaintenanceCost = BaseScaler;
+                    Session.Enforced.SizeScaler = SizeScaler;
+                    Session.Enforced.PowerScaler = PowerScaler;
+                }
+                if (unPackedData.Version <= 79)
+                {
+                    Session.Enforced.HeatScaler = HeatScaler;
                 }
 
+                if (Session.Enforced.BaseScaler == 10 || unPackedData.Version <= 78)
+                {
+                    Session.Enforced.BaseScaler = BaseScaler;
+                    Session.Enforced.HeatScaler = HeatScaler;
+                    Session.Enforced.StationRatio = StationRatio;
+                    Session.Enforced.LargeShipRatio = LargeShipRate;
+                    Session.Enforced.SmallShipRatio = SmallShipRatio;
+                    Session.Enforced.BlockScaler = BlockScaler;
+                    Session.Enforced.HpsEfficiency = HpsEfficiency;
+                    Session.Enforced.MaintenanceCost = BaseScaler;
+                }
                 Session.Enforced.Version = Version;
                 UpdateConfigFile(unPackCfg);
             }
@@ -150,11 +145,6 @@ namespace DefenseShields.Support
                 Session.Enforced.PowerScaler = PowerScaler;
                 Session.Enforced.MwPerCell = PowerCellMw;
 
-                Session.Enforced.MaxHP = MaxHP;
-                Session.Enforced.MinHP = MinHP;
-                Session.Enforced.MaxRecharge = MaxRecharge;
-                Session.Enforced.MinRecharge = MinRecharge;
-
                 WriteNewConfigFile();
 
                 Log.Line($"wrote new config file - file exists: {MyAPIGateway.Utilities.FileExistsInGlobalStorage("DefenseShields.cfg")}");
@@ -172,9 +162,6 @@ namespace DefenseShields.Support
             var cfg = MyAPIGateway.Utilities.ReadFileInGlobalStorage("DefenseShields.cfg");
             var data = MyAPIGateway.Utilities.SerializeFromXML<DefenseShieldsEnforcement>(cfg.ReadToEnd());
             Session.Enforced = data;
-
-            Session.Enforced.MaxHP *= 0.01f;
-            Session.Enforced.MinHP *= 0.01f;
 
             if (Session.Enforced.Debug == 3) Log.Line($"Writing settings to mod:\n{data}");
         }

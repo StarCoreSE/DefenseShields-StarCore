@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using DefenseShields.Support;
-using GjkShapes;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Game;
-using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
-using VRage.Noise.Patterns;
 using VRage.Utils;
 using VRageMath;
-using static DefenseShields.DefenseShields;
-using static VRage.Game.MyObjectBuilder_BlockNavigationDefinition;
 
 namespace DefenseShields
 {
@@ -238,151 +233,48 @@ namespace DefenseShields
             return false;
         }
 
-        private readonly List<MyEntity> _fieldBlockerEntities = new List<MyEntity>();
-        private readonly List<Triangle3d> _triangles = new List<Triangle3d>();
-        private uint _lastFieldCheckTick;
-        private bool _lastFieldCheckState;
         private bool FieldShapeBlocked()
         {
-            _triangles.Clear();
-            Icosphere.ReturnLowPhysicsTris(DetectMatrixOutside, 2, _triangles);
-            //DsDebugDraw.DrawTris(_triangles);
-            if (_lastFieldCheckState && Session.Instance.Tick - _lastFieldCheckTick < 120)
+            ModulatorGridComponent modComp;
+            MyGrid.Components.TryGet(out modComp);
+            if (ShieldComp.Modulator == null || ShieldComp.Modulator.ModSet.Settings.ModulateVoxels || Session.Enforced.DisableVoxelSupport == 1) return false;
+
+            var pruneSphere = new BoundingSphereD(DetectionCenter, BoundingRange);
+            var pruneList = new List<MyVoxelBase>();
+            MyGamePruningStructure.GetAllVoxelMapsInSphere(ref pruneSphere, pruneList);
+
+            if (pruneList.Count == 0) return false;
+            Icosphere.ReturnPhysicsVerts(DetectMatrixOutside, ShieldComp.PhysicsOutsideLow);
+            foreach (var voxel in pruneList)
+            {
+                if (voxel.RootVoxel == null || voxel != voxel.RootVoxel) continue;
+                if (!CustomCollision.VoxelContact(ShieldComp.PhysicsOutsideLow, voxel)) continue;
+
+                Shield.Enabled = false;
+                DsState.State.FieldBlocked = true;
+                _sendMessage = true;
+                if (Session.Enforced.Debug == 3) Log.Line($"Field blocked: - ShieldId [{Shield.EntityId}]");
                 return true;
-
-            _lastFieldCheckTick = Session.Instance.Tick;
-
-            _fieldBlockerEntities.Clear();
-            var pruneSphere = new BoundingSphereD(WorldEllipsoidCenter, BoundingRange);
-            var ignoreVoxels = Session.Enforced.DisableVoxelSupport == 1 || ShieldComp.Modulator == null || ShieldComp.Modulator.ModSet.Settings.ModulateVoxels;
-            MyGamePruningStructure.GetAllTopMostEntitiesInSphere(ref pruneSphere, _fieldBlockerEntities);
-            for (int i = _fieldBlockerEntities.Count - 1; i >= 0; i--)
-            {
-                var ent = _fieldBlockerEntities[i];
-                var grid = ent as MyCubeGrid;
-                var voxel = !ignoreVoxels ? ent as MyVoxelBase : null;
-                if (grid == null && voxel == null || grid != null && (grid.IsStatic ||  grid.IsInSameLogicalGroupAs(MyGrid) || !GridEnemy(grid)) || voxel != null && !GridIsMobile)
-                    _fieldBlockerEntities.RemoveAtFast(i);
             }
-
-            if (_fieldBlockerEntities.Count > 0)
-            {
-                var blocks = new List<IMySlimBlock>();
-
-
-                bool gridIntersect = false;
-                bool voxelIntersect = false;
-                foreach (var entity in _fieldBlockerEntities)
-                {
-                    if (voxelIntersect || gridIntersect)
-                        break;
-
-                    var voxel = entity as MyVoxelBase;
-                    var grid = entity as MyCubeGrid;
-                    if (voxel != null)
-                    {
-                        if (voxel.RootVoxel == null || voxel != voxel.RootVoxel) continue;
-                        if (CustomCollision.VoxelContact(ShieldComp.PhysicsOutsideLow, voxel))
-                            voxelIntersect = true;
-                    }
-                    else if (grid != null)
-                    {
-                        blocks.Clear();
-                        GetBlocksInsideSphereFastBasic(grid, ref pruneSphere, blocks);
-                        var gQuaternion = Quaternion.CreateFromRotationMatrix(grid.PositionComp.WorldMatrixRef);
-                        //Dsutil1.Sw.Restart();
-
-                        for (int x = 0; x < blocks.Count; x++)
-                        {
-                            var block = blocks[x];
-                            Vector3D center;
-                            Vector3D halfExtents;
-                            if (block.FatBlock != null)
-                            {
-                                halfExtents = block.FatBlock.LocalAABB.HalfExtents;
-                                center = block.FatBlock.WorldAABB.Center;
-                            }
-                            else
-                            {
-                                Vector3 halfExt;
-                                block.ComputeScaledHalfExtents(out halfExt);
-                                halfExtents = halfExt;
-                                block.ComputeWorldCenter(out center);
-                            }
-                            
-                            var blockObb = new MyOrientedBoundingBoxD(center, halfExtents, gQuaternion);
-                            var boxSphereRadiusSquared = halfExtents.LengthSquared();
-                            _obbEdges[0] = blockObb.Orientation.Forward * (float)blockObb.HalfExtent.Z;
-                            _obbEdges[1] = blockObb.Orientation.Up * (float)blockObb.HalfExtent.Y;
-                            _obbEdges[2] = blockObb.Orientation.Right * (float)blockObb.HalfExtent.X;
-
-                            for (int i = 0; i < _triangles.Count; i++)
-                            {
-                                var tri = _triangles[i];
-
-                                Vector3D triangleCenter = (tri.V0 + tri.V1 + tri.V2) / 3;
-                                double triangleRadiusSquared = Math.Max(Math.Max((tri.V0 - triangleCenter).LengthSquared(), (tri.V1 - triangleCenter).LengthSquared()), (tri.V2 - triangleCenter).LengthSquared());
-                                double distanceBetweenCentersSquared = (center - triangleCenter).LengthSquared();
-
-                                var spheresTouch = distanceBetweenCentersSquared <= (boxSphereRadiusSquared + triangleRadiusSquared);
-
-                                if (spheresTouch)
-                                {
-                                    _triEdges[0] = tri.V1 - tri.V0;
-                                    _triEdges[1] = tri.V2 - tri.V1;
-                                    _triEdges[2] = tri.V0 - tri.V2;
-
-                                    if (CustomCollision.CheckObbTriIntersection(blockObb, tri, _obbEdges, _triEdges))
-                                    {
-                                        //DsDebugDraw.DrawBox(blockObb, Color.Red);
-                                        gridIntersect = true;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (gridIntersect)
-                                break;
-                        }
-                        //Dsutil1.StopWatchReport("test", -1);
-                    }
-                }
-
-                if (gridIntersect || voxelIntersect)
-                {
-                    if (voxelIntersect)
-                        Shield.Enabled = false;
-
-                    if (!_lastFieldCheckState)
-                    {
-                        DsState.State.FieldBlocked = true;
-                        _sendMessage = true;
-                    }
-
-                    if (Session.Enforced.Debug == 3) Log.Line($"Field blocked: - ShieldId [{Shield.EntityId}]");
-                    _lastFieldCheckState = true;
-
-                    return _lastFieldCheckState;
-                }
-
-            }
-            
             DsState.State.FieldBlocked = false;
-            _lastFieldCheckState = false;
-            return _lastFieldCheckState;
+            return false;
         }
 
         private void FailureDurations()
         {
-
-
-            if (_overLoadLoop == 0 || _reModulationLoop == 0)
+            if (_overLoadLoop == 0 || _empOverLoadLoop == 0 || _reModulationLoop == 0)
             {
                 if (DsState.State.Online || !WarmedUp)
                 {
                     if (_overLoadLoop != -1)
                     {
                         DsState.State.Overload = true;
+                        _sendMessage = true;
+                    }
+
+                    if (_empOverLoadLoop != -1)
+                    {
+                        DsState.State.EmpOverLoad = true;
                         _sendMessage = true;
                     }
 
@@ -420,6 +312,28 @@ namespace DefenseShields
                         DsState.State.Overload = false;
                         _overLoadLoop = -1;
                         ChargeMgr.SetCharge(ShieldMaxCharge * 0.35f, ShieldChargeMgr.ChargeMode.Set);
+                    }
+                }
+            }
+
+            if (_empOverLoadLoop > -1)
+            {
+                _empOverLoadLoop++;
+                if (_empOverLoadLoop == EmpDownCount - 1) ShieldComp.CheckEmitters = true;
+                if (_empOverLoadLoop == EmpDownCount)
+                {
+                    if (!DsState.State.EmitterLos)
+                    {
+                        DsState.State.EmpOverLoad = false;
+                        _empOverLoadLoop = -1;
+                    }
+                    else
+                    {
+                        DsState.State.EmpOverLoad = false;
+                        _empOverLoadLoop = -1;
+                        _empOverLoad = false;
+                        var recharged = _shieldPeakRate * EmpDownCount / 60;
+                        ChargeMgr.SetCharge(MathHelper.Clamp(recharged, ShieldMaxCharge * 0.05f, ShieldMaxCharge * 0.62f), ShieldChargeMgr.ChargeMode.Set);
                     }
                 }
             }
