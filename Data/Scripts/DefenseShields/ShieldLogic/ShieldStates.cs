@@ -459,7 +459,7 @@ namespace DefenseShields
         {
             if (_tick > ResetEntityTick && DsState.State.Suspended)
             {
-                ResetEntityTick = _tick + 1800;
+                ResetEntityTick = _tick + 900;
             }
 
             DsState.State.Suspended = false;

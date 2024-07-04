@@ -882,8 +882,8 @@
         </ParticleGeneration>
       </ParticleGenerations>
       <ParticleLights />
-      <DistanceMax>10000</DistanceMax>
-      <Priority>1</Priority>
+      <DistanceMax>800</DistanceMax>
+      <Priority>10</Priority>
     </ParticleEffect>
   </ParticleEffects>
 </Definitions>

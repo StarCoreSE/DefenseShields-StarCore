@@ -132,7 +132,7 @@ namespace DefenseShields
             {
                 var sides = Controller.DsState.State.ShieldSides;
                 var maxSides = sides.Length;
-                var maxSideCharge = Controller.ShieldChargeBase / maxSides;
+                var maxSideCharge = Controller.ShieldChargeBase; // / maxSides;
                 var relativeThreshold = 0.05f * maxSideCharge; // 5% threshold
 
                 switch (type)
@@ -156,7 +156,7 @@ namespace DefenseShields
                         break;
                     case ChargeMode.Charge:
                         var heatSinkActive = Controller.DsSet.Settings.SinkHeatCount > Controller.HeatSinkCount;
-                        var chargeEfficiency = heatSinkActive ? 2.5f : 0.5f;
+                        var chargeEfficiency = heatSinkActive ? 2f : 0.5f;
                         var reducer = (3 + Controller.ExpChargeReduction) / 4;
                         var chargeBuffer = Controller.ShieldPeakRate / 3;
                         var chargeRate = Controller.ExpChargeReduction > 0 && !Controller.DsSet.Settings.AutoManage ? chargeBuffer / reducer : chargeBuffer;
@@ -255,7 +255,7 @@ namespace DefenseShields
             {
                 var sides = Controller.DsState.State.ShieldSides;
                 int totalSides = sides.Length;
-                var maxHealth = Controller.ShieldChargeBase / totalSides;
+                var maxHealth = Controller.ShieldChargeBase; // / totalSides
                 var side = sides[(int) shieldSide];
                 offline = !side.Online;
                 var currentHealth = (float)MathHelperD.Clamp(side.Charge, 0, maxHealth);
