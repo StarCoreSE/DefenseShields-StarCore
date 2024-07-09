@@ -17,7 +17,7 @@ namespace DefenseShields
             var heat = DsState.State.Heat;
             heat /= 10;
 
-            if (heat >= 10) ShieldChargeRate = 0;
+            if (heat >= 8) ShieldChargeRate = 0;
             else
             {
                 ExpChargeReduction = ExpChargeReductions[heat];
@@ -110,7 +110,7 @@ namespace DefenseShields
 
             if (heatSinkActive)
             {
-                if (!_heatSinkEffectTriggered || _heatSinkEffectTimer >= 60) // Check if it's not triggered or 1 second has passed
+                if (!_heatSinkEffectTriggered || _heatSinkEffectTimer >= 180) // Check if it's not triggered or 1 second has passed
                 {
                     MyVisualScriptLogicProvider.CreateParticleEffectAtEntity("HeatSinkParticle", MyGrid.Name);
                     MyVisualScriptLogicProvider.PlaySingleSoundAtEntity("HeatSinkSound", MyGrid.Name);

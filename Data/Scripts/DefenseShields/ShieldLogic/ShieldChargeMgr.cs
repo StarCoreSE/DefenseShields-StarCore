@@ -132,7 +132,7 @@ namespace DefenseShields
             {
                 var sides = Controller.DsState.State.ShieldSides;
                 var maxSides = sides.Length;
-                var maxSideCharge = Controller.ShieldChargeBase / maxSides;
+                var maxSideCharge = Controller.ShieldChargeBase; // / maxSides;
                 var relativeThreshold = 0.05f * maxSideCharge; // 5% threshold
 
                 switch (type)
@@ -255,7 +255,7 @@ namespace DefenseShields
             {
                 var sides = Controller.DsState.State.ShieldSides;
                 int totalSides = sides.Length;
-                var maxHealth = Controller.ShieldChargeBase / totalSides;
+                var maxHealth = Controller.ShieldChargeBase; // / totalSides
                 var side = sides[(int) shieldSide];
                 offline = !side.Online;
                 var currentHealth = (float)MathHelperD.Clamp(side.Charge, 0, maxHealth);

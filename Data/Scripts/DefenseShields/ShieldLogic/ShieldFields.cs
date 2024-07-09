@@ -109,12 +109,12 @@ namespace DefenseShields
         private const int CapacitorStableCount = 600;
         private const int OverHeat = 600;
         private const int HeatingStep = 600;
-        private const int CoolingStep = 1200;
-        private const int FallBackStep = 10;
+        private const int CoolingStep = 600;
+        private const int FallBackStep = 40;
         private const float MagicEllipsoidRatio = 1000;
         private const float BlockDensityLimit = 0.05f;
         private const float PowerDensityLimit = 0.125f;
-        private const int SinkCountTime = 20;
+        private const int SinkCountTime = 10;
 
         private const int SyncCount = 60;
 

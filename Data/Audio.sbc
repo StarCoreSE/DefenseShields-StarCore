@@ -56,7 +56,7 @@
         <SubtypeId>HeatSinkSound</SubtypeId>
       </Id>
       <Category>BLOCK</Category>
-      <MaxDistance>1000</MaxDistance>
+      <MaxDistance>400</MaxDistance>
       <Volume>1</Volume>
       <Loopable>true</Loopable>
       <SoundLimit>4</SoundLimit>
