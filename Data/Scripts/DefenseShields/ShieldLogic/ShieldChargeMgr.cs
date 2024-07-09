@@ -156,7 +156,7 @@ namespace DefenseShields
                         break;
                     case ChargeMode.Charge:
                         var heatSinkActive = Controller.DsSet.Settings.SinkHeatCount > Controller.HeatSinkCount;
-                        var chargeEfficiency = heatSinkActive ? 2f : 0.5f;
+                        var chargeEfficiency = heatSinkActive ? 2.5f : 0.5f;
                         var reducer = (3 + Controller.ExpChargeReduction) / 4;
                         var chargeBuffer = Controller.ShieldPeakRate / 3;
                         var chargeRate = Controller.ExpChargeReduction > 0 && !Controller.DsSet.Settings.AutoManage ? chargeBuffer / reducer : chargeBuffer;
