@@ -193,6 +193,13 @@ namespace DefenseShields
 
             var cleanPower = ShieldAvailablePower + ShieldCurrentPower;
             _otherPower = ShieldMaxPower - cleanPower;
+
+            // Get multiplier from shunt count
+            float shuntingEnergyMultiplier = CalculateShuntedEnergyMultiplier();
+
+            // Apply shunting multiplier to shield maintenance power
+            _shieldMaintaintPower *= shuntingEnergyMultiplier;
+
             var powerForShield = (cleanPower * 0.9f) - _shieldMaintaintPower;
             var rawMaxChargeRate = powerForShield > 0 ? powerForShield : 0f;
             rawMaxChargeRate = MathHelper.Clamp(rawMaxChargeRate, minRecharge, maxRecharge);
@@ -217,7 +224,8 @@ namespace DefenseShields
                     ShieldChargeRate = 0;
                 }
             }
-            float shuntingEnergyMultiplier = CalculateShuntedEnergyMultiplier();
+
+
             // Adjust total power needed to include shunting cost
             _powerNeeded = (_shieldMaintaintPower + _shieldConsumptionRate + _otherPower) * shuntingEnergyMultiplier;
 
@@ -226,11 +234,11 @@ namespace DefenseShields
 
         private float CalculateShuntedEnergyMultiplier()
         {
-            // Count the number of shunted sides
-            int shuntedSides = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
+            // Calculation taken from TapiBackend.cs line 969, counts shunts.
+            int shuntedCount = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
 
-            // Calculate the multiplier (5% increase per shunted side)
-            return 1f + (shuntedSides * 0.05f);
+            // Calculate the multiplier (5% increase per shunted side). 
+            return 1f + (shuntedCount * 0.05f);
         }
 
         private bool PowerLoss(bool powerLost, bool serverNoPower)
