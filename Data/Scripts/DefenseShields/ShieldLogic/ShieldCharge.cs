@@ -217,10 +217,20 @@ namespace DefenseShields
                     ShieldChargeRate = 0;
                 }
             }
-
-            _powerNeeded = _shieldMaintaintPower + _shieldConsumptionRate + _otherPower;
+            float shuntingEnergyMultiplier = CalculateShuntedEnergyMultiplier();
+            // Adjust total power needed to include shunting cost
+            _powerNeeded = (_shieldMaintaintPower + _shieldConsumptionRate + _otherPower) * shuntingEnergyMultiplier;
 
             return powerForShield;
+        }
+
+        private float CalculateShuntedEnergyMultiplier()
+        {
+            // Count the number of shunted sides
+            int shuntedSides = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
+
+            // Calculate the multiplier (5% increase per shunted side)
+            return 1f + (shuntedSides * 0.05f);
         }
 
         private bool PowerLoss(bool powerLost, bool serverNoPower)
