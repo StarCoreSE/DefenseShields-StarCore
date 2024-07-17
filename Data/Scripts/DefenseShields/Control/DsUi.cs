@@ -724,7 +724,7 @@ namespace DefenseShields
         internal static void SetSideShunting(IMyTerminalBlock block, bool newValue)
         {
             var comp = block?.GameLogic?.GetAs<DefenseShields>();
-            if (comp == null || Session.Instance.DedicatedServer) return;
+            if (comp == null /*|| Session.Instance.DedicatedServer*/) return;
             if (comp.DsSet.Settings.SideShunting != newValue)
             {
                 comp.StartRedirectTimer();
