@@ -82,6 +82,11 @@ namespace DefenseShields
             var nextCycle = _heatCycle == (_currentHeatStep * scaledHeatingSteps) + scaledOverHeat;
 
             var fastCoolDown = (heatSinkActive || DsState.State.Overload) && (_heatCycle % 200 == 0);
+
+            float shuntingHeatFactor = CalculateShuntedHeatFactor();
+
+            ChargeMgr.AbsorbHeat *= shuntingHeatFactor;
+
             var pastThreshold = ChargeMgr.AbsorbHeat > nextThreshold;
             var venting = lastStep && pastThreshold;
             var leftCritical = lastStep && _tick >= _heatVentingTick;
@@ -127,6 +132,29 @@ namespace DefenseShields
                 _heatSinkEffectTriggered = false;
                 _heatSinkEffectTimer = 0; // Reset the timer
             }
+        }
+
+        // Calculation taken from TapiBackend.cs line 969, counts shunts.
+        // This is based off of the surface area of one segment
+        // One segment = ( (4πr^2 / 6) / 4πr^2) * 100% = 16.666666... repeating...
+        // Simplifying: (1 / 6) * 100% ≈ 16.67% = close enough
+
+        private float CalculateShuntedHeatFactor()
+        {
+            if (!DsSet.Settings.SideShunting)
+            {
+                // Add debug notification when shunting is disabled
+                //MyAPIGateway.Utilities.ShowNotification("Shunting Heat Factor: 1.00 (Disabled)", 100, "White");
+                return 1f;
+            }
+
+            int shuntedCount = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
+            float factor = 1f + (shuntedCount * 0.1667f);
+
+            // Add debug notification
+            //MyAPIGateway.Utilities.ShowNotification($"Shunting Heat Factor: {factor:F2}", 100, "White");
+
+            return factor;
         }
 
         private void HeatTick()
