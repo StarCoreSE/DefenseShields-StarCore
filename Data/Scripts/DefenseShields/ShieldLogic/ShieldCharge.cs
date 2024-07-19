@@ -195,7 +195,7 @@ namespace DefenseShields
             _otherPower = ShieldMaxPower - cleanPower;
 
             // Get multiplier from shunt count
-            float shuntingEnergyMultiplier = CalculateShuntedEnergyMultiplier();
+            float shuntingEnergyMultiplier = CalculateShuntedEnergyFactor();
 
             // Apply shunting multiplier to shield maintenance power
             _shieldMaintaintPower *= shuntingEnergyMultiplier;
@@ -231,14 +231,16 @@ namespace DefenseShields
 
             return powerForShield;
         }
-
-        private float CalculateShuntedEnergyMultiplier()
+        
+        private float CalculateShuntedEnergyFactor()
         {
             // Calculation taken from TapiBackend.cs line 969, counts shunts.
             int shuntedCount = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
 
-            // Calculate the multiplier (5% increase per shunted side). 
-            return 1f + (shuntedCount * 0.05f);
+            // This is based off of the surface area of one segment
+            // One segment = ( (4πr^2 / 6) / 4πr^2) * 100% = 16.666666... repeating...
+            // Simplifying: (1 / 6) * 100% ≈ 16.67% = close enough
+            return 1f + (shuntedCount * 0.1667f);
         }
 
         private bool PowerLoss(bool powerLost, bool serverNoPower)
