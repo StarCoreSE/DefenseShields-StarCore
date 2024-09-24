@@ -419,7 +419,7 @@ namespace DefenseShields
                     {
                         DsState.State.Overload = false;
                         _overLoadLoop = -1;
-                        ChargeMgr.SetCharge(ShieldMaxCharge * 0.275f, ShieldChargeMgr.ChargeMode.Set);
+                        ChargeMgr.SetCharge(ShieldMaxCharge * 0.35f, ShieldChargeMgr.ChargeMode.Set);
                     }
                 }
             }
