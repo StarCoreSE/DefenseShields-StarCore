@@ -379,7 +379,7 @@ namespace DefenseShields
             var shuntMod = !hitShuntedSide ? (float)(1 - ((shuntedFaces * 0.17f) - ((shuntedFaces * (shuntedFaces - 3)) * 0.025f))) : logic.DsSet.Settings.AutoManage ? 1 - Session.ShieldShuntBonus : 1f;
             var preventBypassMod = MathHelper.Clamp(shuntedFaces * Session.ShieldBypassBonus, 0f, 1f);
 
-            var reinforcedPercent = hitShuntedSide ? logic.DsState.State.ShieldPercent + (shuntedFaces * 12) : logic.DsState.State.ShieldPercent;
+            var reinforcedPercent = hitShuntedSide ? logic.DsState.State.ShieldPercent + (shuntedFaces * 18) : logic.DsState.State.ShieldPercent;
             var heatedEnforcedPercent = reinforcedPercent / (1 + (logic.DsState.State.Heat * 0.0005));
 
             if (heatedEnforcedPercent < penStartThreshold)

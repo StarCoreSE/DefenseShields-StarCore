@@ -17,7 +17,7 @@ namespace DefenseShields
             var heat = DsState.State.Heat;
             heat /= 10;
 
-            if (heat >= 8) ShieldChargeRate = 0;
+            if (heat >= 10) ShieldChargeRate = 0;
             else
             {
                 ExpChargeReduction = ExpChargeReductions[heat];
