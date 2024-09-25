@@ -599,16 +599,16 @@ namespace DefenseShields
                         {
                             if (MyUtils.IsEqual(maxPower, 300f))
                             {
-                                nerfScaler += (0.85f * value);
+                                nerfScaler += (0.8f * value);
                             }
                             else
                             {
-                                nerfScaler += (1.1f * value);
+                                nerfScaler += (1f * value);
                             }
                         }
                         else
                         {
-                            nerfScaler += (1 * value);
+                            nerfScaler += (0.8f * value);
                         }
 
                         nerfCount += value;
