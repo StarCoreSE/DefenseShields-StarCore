@@ -48,7 +48,7 @@ namespace DefenseShields
 
             var checkFortState = (ShieldComp.GridIsMoving || _comingOnline) && DsSet.Settings.FortifyShield;
 
-            if (checkFortState && MyGrid.Physics.LinearVelocity.LengthSquared() > 225)
+            if (checkFortState && MyGrid.Physics.LinearVelocity.LengthSquared() > 2500)
             {
                 FitChanged = true;
                 DsSet.Settings.FortifyShield = false;
