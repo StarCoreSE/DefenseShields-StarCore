@@ -28,7 +28,7 @@ namespace DefenseShields
             Session.Instance.AggregateModulation.Visible = ShowControl;
             Session.Instance.ModEmp.Enabled = block => false;
             Session.Instance.ModEmp.Visible = ShowEMP;
-            Session.Instance.ModReInforce.Enabled = block => true;
+            Session.Instance.ModReInforce.Enabled = block => false;
             Session.Instance.ModReInforce.Visible = ShowReInforce;
             Session.Instance.ModSep1.Visible = ShowControl;
             Session.Instance.ModSep2.Visible = ShowControl;
