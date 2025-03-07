@@ -394,7 +394,7 @@ namespace DefenseShields
 
             if (logic.DsSet.Settings.SideShunting)
             {
-                return new MyTuple<bool, int, int, float, float, float>(hitShuntedSide, shuntedFaceHit, shuntedFaces, shuntMod, preventBypassMod, penChance);
+                return new MyTuple<bool, int, int, float, float, float>(hitShuntedSide, shuntedFaceHit, shuntedFaces, shuntMod, preventBypassMod, 0);
             }
 
             var penScaler = logic.DsState.State.ShieldPercent / (1 + (logic.DsState.State.Heat * 0.0005f));
@@ -408,7 +408,7 @@ namespace DefenseShields
                 penChance = (float)((a * Math.Pow(x, 2)) + (b * x) + c);
             }
 
-            return new MyTuple<bool, int, int, float, float, float>(false, 0, 0, logic.DsSet.Settings.AutoManage ? 1 - Session.ShieldShuntBonus : 1f, 0, penChance);
+            return new MyTuple<bool, int, int, float, float, float>(false, 0, 0, logic.DsSet.Settings.AutoManage ? 1 - Session.ShieldShuntBonus : 1f, 0, 0);
         }
 
         private static float? TAPI_PointAttackShieldCon(IMyTerminalBlock block, Vector3D pos, long attackerId, float damage, float secondaryDamage, bool energy, bool drawParticle, bool posMustBeInside = false) //inlined for performance

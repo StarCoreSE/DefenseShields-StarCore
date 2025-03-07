@@ -282,6 +282,8 @@ namespace DefenseShields
 
         private double GetPenChance()
         {
+            return 0;
+
             var shuntedFaces = ShuntedSideCount();
             var reinforcedPercent = DsSet.Settings.SideShunting && shuntedFaces > 0 ? DsState.State.ShieldPercent + (shuntedFaces * 8) : DsState.State.ShieldPercent;
             var heatedEnforcedPercent = reinforcedPercent / (1 + (DsState.State.Heat * 0.005));
