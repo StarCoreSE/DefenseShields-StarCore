@@ -193,6 +193,13 @@ namespace DefenseShields
 
             var cleanPower = ShieldAvailablePower + ShieldCurrentPower;
             _otherPower = ShieldMaxPower - cleanPower;
+
+            // Get multiplier from shunt count
+            float shuntingEnergyMultiplier = CalculateShuntedEnergyFactor();
+
+            // Apply shunting multiplier to shield maintenance power
+            _shieldMaintaintPower *= shuntingEnergyMultiplier;
+
             var powerForShield = (cleanPower * 0.9f) - _shieldMaintaintPower;
             var rawMaxChargeRate = powerForShield > 0 ? powerForShield : 0f;
             rawMaxChargeRate = MathHelper.Clamp(rawMaxChargeRate, minRecharge, maxRecharge);
@@ -218,9 +225,36 @@ namespace DefenseShields
                 }
             }
 
-            _powerNeeded = _shieldMaintaintPower + _shieldConsumptionRate + _otherPower;
+
+            // Adjust total power needed to include shunting cost
+            _powerNeeded = (_shieldMaintaintPower + _shieldConsumptionRate + _otherPower) * shuntingEnergyMultiplier;
 
             return powerForShield;
+        }
+
+        // Calculation taken from TapiBackend.cs line 969, counts shunts.
+
+
+        // This is based off of the surface area of one segment
+        // One segment = ( (4πr^2 / 6) / 4πr^2) * 100% = 16.666666... repeating...
+        // Simplifying: (1 / 6) * 100% ≈ 16.67% = close enough
+
+        private float CalculateShuntedEnergyFactor()
+        {
+            if (!DsSet.Settings.SideShunting)
+            {
+                // Add debug notification when shunting is disabled
+                //MyAPIGateway.Utilities.ShowNotification("Shunting Energy Factor: 1.00 (Disabled)", 100, "White");
+                return 1f;
+            }
+
+            int shuntedCount = Math.Abs(ShieldRedirectState.X) + Math.Abs(ShieldRedirectState.Y) + Math.Abs(ShieldRedirectState.Z);
+            float factor = 1f + (shuntedCount * 0.1667f);
+
+            // Add debug notification
+            //MyAPIGateway.Utilities.ShowNotification($"Shunting Energy Factor: {factor:F2}", 100, "White");
+
+            return factor;
         }
 
         private bool PowerLoss(bool powerLost, bool serverNoPower)
